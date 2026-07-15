@@ -13,7 +13,7 @@ rust-version = "1.70"
 [features]
 default = ["std", "format", "log", "math", "regex", "time"]
 regex = ["regex-bites"]
-std = []
+std = ["jaq-core/std"]
 format = ["aho-corasick", "base64", "urlencoding"]
 math = ["libm"]
 time = ["jiff"]
