@@ -10,6 +10,7 @@ extern crate std;
 pub mod read;
 pub mod write;
 
+#[cfg(feature = "all")]
 use jaq_core::native::{run, Fun};
 
 #[cfg(feature = "all")]

@@ -22,7 +22,7 @@ wasm-opt = ['-O','--all-features']
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-jaq-all  = { workspace = true }
+jaq-all  = { workspace = true, features = ["formats", "std-all"] }
 
 aho-corasick = "1.1.2"
 log = "0.4.17"

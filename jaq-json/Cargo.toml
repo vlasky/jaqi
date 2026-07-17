@@ -14,7 +14,7 @@ rust-version = "1.70"
 [features]
 default = ["std"]
 sync = []
-std = ["hifijson/std"]
+std = ["hifijson/std", "jaq-core/std", "jaq-std/std"]
 serde = ["serde_core"]
 
 [dependencies]

@@ -11,8 +11,9 @@ keywords = ["jq"]
 rust-version = "1.70"
 
 [features]
-default = ["formats"]
+default = ["formats", "std-all"]
 formats = ["jaq-fmts/all"]
+std-all = ["jaq-std/default"]
 
 [dependencies]
 jaq-core = { workspace = true }
