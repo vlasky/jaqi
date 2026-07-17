@@ -36,7 +36,8 @@ fn main() -> ExitCode {
         })
         .init();
 
-    // catch broken pipes
+    // last line of defense against I/O errors that happen during printing,
+    // e.g. catching broken pipes during error printing
     main_io(&mut io::stdin(), &mut io::stdout(), &mut io::stderr())
         .unwrap_or_else(|e: io::Error| Error::from(e).report())
 }
