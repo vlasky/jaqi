@@ -48,6 +48,17 @@ impl Dec {
         Self { lit, num }
     }
 
+    /// Create a decimal number from its literal representation and its value.
+    ///
+    /// Here, `num` must be the output of `lit.parse::<f64>()`,
+    /// or NaN if parsing fails.
+    /// This is useful when the value of `lit` is already known,
+    /// because it avoids parsing `lit` again.
+    pub(crate) fn with_value(lit: String, num: f64) -> Self {
+        debug_assert!(num.to_bits() == lit.parse().unwrap_or(f64::NAN).to_bits());
+        Self { lit, num }
+    }
+
     /// Literal representation of the number.
     pub fn as_str(&self) -> &str {
         &self.lit

@@ -135,6 +135,11 @@ impl jaq_core::ValT for Val {
         Ok(Self::Num(Num::from_str(n)))
     }
 
+    fn from_dec(lit: &str, num: f64) -> ValR {
+        let dec = num::Dec::with_value(lit.to_owned(), num);
+        Ok(Self::Num(Num::Dec(Rc::new(dec))))
+    }
+
     fn from_map<I: IntoIterator<Item = (Self, Self)>>(iter: I) -> ValR {
         Ok(Self::obj(iter.into_iter().collect()))
     }
