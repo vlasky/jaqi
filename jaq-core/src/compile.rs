@@ -92,7 +92,10 @@ pub(crate) enum Term<T = TermId> {
     ToString,
 
     Int(isize),
-    Num(String),
+    /// Number literal that is not representable by [`Term::Int`],
+    /// optionally with its pre-parsed floating-point value
+    /// (present iff the literal is decimal, i.e. not an integer)
+    Num(String, Option<f64>),
     Str(String),
     /// Array construction (`[f]`)
     Arr(T),
@@ -665,7 +668,19 @@ impl<'s, F> Compiler<&'s str, F> {
 
                 return (t, tr_);
             }
-            Num(n) => n.parse().map_or_else(|_| Term::Num(n.into()), Term::Int),
+            Num(n) => match n.parse() {
+                Ok(i) => Term::Int(i),
+                // an integer literal that overflows `isize`
+                Err(_) if !n.contains(|c| matches!(c, '.' | 'e' | 'E')) => {
+                    Term::Num(n.into(), None)
+                }
+                // a decimal literal, whose value we parse once here,
+                // so that it does not have to be parsed at every evaluation
+                Err(_) => {
+                    let f = n.parse().unwrap_or(f64::NAN);
+                    Term::Num(n.into(), Some(f))
+                }
+            },
             TryCatch(try_, catch) => {
                 let catch = catch.map_or_else(|| Call("!empty", Vec::new()), |t| *t);
                 Term::TryCatch(self.iterm(*try_), self.iterm(catch))

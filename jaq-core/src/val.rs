@@ -74,6 +74,17 @@ pub trait ValT:
     /// The number should adhere to the format accepted by [`f64::from_str`].
     fn from_num(n: &str) -> ValR<Self>;
 
+    /// Create a number from a decimal literal and its floating-point value.
+    ///
+    /// Here, `num` is the output of `lit.parse::<f64>()`,
+    /// or NaN if parsing fails.
+    /// Implementations that store decimal literals can use `num` to
+    /// avoid parsing `lit` at every call.
+    fn from_dec(lit: &str, num: f64) -> ValR<Self> {
+        let _ = num;
+        Self::from_num(lit)
+    }
+
     /// Create an associative map (or object) from a sequence of key-value pairs.
     ///
     /// This is used when creating values with the syntax `{k: v}`.

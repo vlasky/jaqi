@@ -468,7 +468,13 @@ impl Id {
             Ast::Recurse => recurse_run(cv.1, &|v| v.values()),
             Ast::ToString => box_once(Ok(cv.1.into_string())),
             Ast::Int(n) => box_once(Ok(D::V::from(*n))),
-            Ast::Num(x) => box_once(D::V::from_num(x).map_err(Exn::from)),
+            Ast::Num(x, f) => box_once(
+                match f {
+                    Some(f) => D::V::from_dec(x, *f),
+                    None => D::V::from_num(x),
+                }
+                .map_err(Exn::from),
+            ),
             Ast::Str(s) => box_once(Ok(D::V::from(s.clone()))),
             Ast::Arr(f) => box_once(f.run(cv).collect()),
             Ast::ObjEmpty => box_once(D::V::from_map([]).map_err(Exn::from)),
@@ -581,7 +587,7 @@ impl Id {
         let proj_val = |(val, _path): &(D::V<'a>, _)| val.clone();
         match &cv.0.lut().terms[self.0] {
             Ast::ToString => err(cv.1 .0),
-            Ast::Int(_) | Ast::Num(_) | Ast::Str(_) => err(cv.1 .0),
+            Ast::Int(_) | Ast::Num(..) | Ast::Str(_) => err(cv.1 .0),
             Ast::Arr(_) | Ast::ObjEmpty | Ast::ObjSingle(..) => err(cv.1 .0),
             Ast::Neg(_) | Ast::Logic(..) | Ast::Math(..) | Ast::Cmp(..) => err(cv.1 .0),
             Ast::Update(..) | Ast::Assign(..) => err(cv.1 .0),
@@ -665,7 +671,7 @@ impl Id {
         let err = |v| box_once(Err(Exn::from(Error::path_expr(v))));
         match &cv.0.lut().terms[self.0] {
             Ast::ToString => err(cv.1),
-            Ast::Int(_) | Ast::Num(_) | Ast::Str(_) => err(cv.1),
+            Ast::Int(_) | Ast::Num(..) | Ast::Str(_) => err(cv.1),
             Ast::Arr(_) | Ast::ObjEmpty | Ast::ObjSingle(..) => err(cv.1),
             Ast::Neg(_) | Ast::Logic(..) | Ast::Math(..) | Ast::Cmp(..) => err(cv.1),
             Ast::Update(..) | Ast::Assign(..) => err(cv.1),
