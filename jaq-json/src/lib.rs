@@ -627,10 +627,10 @@ impl core::ops::Mul for Val {
                 s * Num(Int(bigint_to_int_saturated(&i)))
             }
             (BStr(s), Num(Int(i))) | (Num(Int(i)), BStr(s)) if i > 0 => {
-                Ok(Self::byte_str(s.repeat(i as usize)))
+                Ok(Self::byte_str(repeat_str(&s, i as usize)?))
             }
             (TStr(s), Num(Int(i))) | (Num(Int(i)), TStr(s)) if i > 0 => {
-                Ok(Self::utf8_str(s.repeat(i as usize)))
+                Ok(Self::utf8_str(repeat_str(&s, i as usize)?))
             }
             // string multiplication with negatives or 0 results in null
             // <https://jqlang.github.io/jq/manual/#Builtinoperatorsandfunctions>
@@ -642,6 +642,35 @@ impl core::ops::Mul for Val {
             (l, r) => Err(Error::math(l, ops::Math::Mul, r)),
         }
     }
+}
+
+/// Repeat a byte string `n` times, failing if the result would be too long.
+///
+/// `[u8]::repeat` aborts the process both on a capacity overflow (when
+/// the length exceeds `isize::MAX`, e.g. `"ab" * 9223372036854775807`)
+/// and on allocation failure (when the length is representable but too
+/// large to allocate, e.g. `"a" * 9223372036854775807`). We therefore
+/// bound the length and allocate fallibly, returning an error in both
+/// cases, like jq does.
+fn repeat_str(s: &[u8], n: usize) -> Result<Vec<u8>, Error> {
+    let err = || Error::str("Repeat string result too long");
+    let len = s
+        .len()
+        .checked_mul(n)
+        .filter(|&len| len <= isize::MAX as usize)
+        .ok_or_else(err)?;
+
+    let mut out = Vec::new();
+    out.try_reserve_exact(len).map_err(|_| err())?;
+    if !s.is_empty() {
+        out.extend_from_slice(s);
+        // grow by doubling, so that we copy in O(log n) steps like `repeat`
+        while out.len() < len {
+            let rest = len - out.len();
+            out.extend_from_within(..rest.min(out.len()));
+        }
+    }
+    Ok(out)
 }
 
 /// Split a string by a given separator string.

@@ -2,7 +2,8 @@
 
 pub mod common;
 
-use common::give;
+use common::{fail, give};
+use jaq_json::Error;
 use serde_json::json;
 
 yields!(bsearch_absent1, "[1, 3] | bsearch(0)", -1);
@@ -174,3 +175,22 @@ yields!(
     r#"("%FF" | @urid) == ([255] | tobytes | tostring)"#,
     true
 );
+
+// `isize::MIN` has no positive `isize` counterpart, so `length`
+// must promote it to a big integer instead of overflowing.
+yields!(
+    length_int_min,
+    "(-9223372036854775807 - 1) | length",
+    9223372036854775808_u64
+);
+
+// multiplying a string by a huge integer must yield an error instead
+// of aborting the process, both when the byte length overflows
+// (`"ab" * isize::MAX`) and when it is representable but too large to
+// allocate (`"a" * isize::MAX`).
+#[test]
+fn mul_str_overflow() {
+    let err = || Error::str("Repeat string result too long");
+    fail(json!(null), r#""ab" * 9223372036854775807"#, err());
+    fail(json!(null), r#""a" * 9223372036854775807"#, err());
+}
