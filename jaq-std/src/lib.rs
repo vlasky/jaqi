@@ -472,10 +472,48 @@ where
     ])
 }
 
+/// Entities corresponding to the characters `<`, `>`, `&`, `'`, and `"`.
 #[cfg(feature = "format")]
-fn replace(s: &[u8], patterns: &[&str], replacements: &[&str]) -> Vec<u8> {
-    let ac = aho_corasick::AhoCorasick::new(patterns).unwrap();
-    ac.replace_all_bytes(s, replacements)
+const HTML_ENTITIES: [(&[u8], u8); 5] = [
+    (b"&lt;", b'<'),
+    (b"&gt;", b'>'),
+    (b"&amp;", b'&'),
+    (b"&apos;", b'\''),
+    (b"&quot;", b'"'),
+];
+
+#[cfg(feature = "format")]
+fn escape_html(s: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(s.len());
+    for b in s {
+        match HTML_ENTITIES.iter().find(|(_ent, c)| c == b) {
+            Some((ent, _c)) => out.extend_from_slice(ent),
+            None => out.push(*b),
+        }
+    }
+    out
+}
+
+#[cfg(feature = "format")]
+fn unescape_html(s: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(i) = rest.iter().position(|b| *b == b'&') {
+        out.extend_from_slice(&rest[..i]);
+        let tail = &rest[i..];
+        match HTML_ENTITIES.iter().find(|(ent, _c)| tail.starts_with(ent)) {
+            Some((ent, c)) => {
+                out.push(*c);
+                rest = &tail[ent.len()..];
+            }
+            None => {
+                out.push(b'&');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.extend_from_slice(rest);
+    out
 }
 
 #[cfg(feature = "format")]
@@ -483,14 +521,12 @@ fn format<D: DataT>() -> Box<[Filter<RunPtr<D>>]>
 where
     for<'a> D::V<'a>: ValT,
 {
-    const HTML_PATS: [&str; 5] = ["<", ">", "&", "\'", "\""];
-    const HTML_REPS: [&str; 5] = ["&lt;", "&gt;", "&amp;", "&apos;", "&quot;"];
     Box::new([
         ("escape_html", v(0), |cv| {
-            bome(cv.1.map_utf8_str(|s| replace(s, &HTML_PATS, &HTML_REPS)))
+            bome(cv.1.map_utf8_str(escape_html))
         }),
         ("unescape_html", v(0), |cv| {
-            bome(cv.1.map_utf8_str(|s| replace(s, &HTML_REPS, &HTML_PATS)))
+            bome(cv.1.map_utf8_str(unescape_html))
         }),
         ("encode_uri", v(0), |cv| {
             bome(cv.1.map_utf8_str(|s| urlencoding::encode_binary(s).to_string()))

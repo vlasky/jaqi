@@ -64,18 +64,40 @@ macro_rules! write_row {
     }};
 }
 
+/// Write `b`, replacing single bytes according to `escape`.
+fn write_escaped(
+    w: &mut dyn io::Write,
+    b: &[u8],
+    escape: impl Fn(u8) -> Option<&'static [u8]>,
+) -> io::Result<()> {
+    let mut rest = b;
+    while let Some((i, esc)) = rest
+        .iter()
+        .enumerate()
+        .find_map(|(i, b)| Some((i, escape(*b)?)))
+    {
+        w.write_all(&rest[..i])?;
+        w.write_all(esc)?;
+        rest = &rest[i + 1..];
+    }
+    w.write_all(rest)
+}
+
 fn write_csv_str(w: &mut dyn io::Write, b: &[u8]) -> io::Result<()> {
-    use bstr::ByteSlice;
     write!(w, "\"")?;
-    w.write_all(&b.replace(b"\"", b"\"\""))?;
+    write_escaped(w, b, |b| (b == b'"').then_some(b"\"\""))?;
     write!(w, "\"")
 }
 
 fn write_tsv_str(w: &mut dyn io::Write, b: &[u8]) -> io::Result<()> {
-    let pats = ["\n", "\r", "\t", "\\", "\0"];
-    let reps = ["\\n", "\\r", "\\t", "\\\\", "\\0"];
-    let ac = aho_corasick::AhoCorasick::new(pats).unwrap();
-    w.write_all(&ac.replace_all_bytes(b, &reps))
+    write_escaped(w, b, |b| match b {
+        b'\n' => Some(b"\\n"),
+        b'\r' => Some(b"\\r"),
+        b'\t' => Some(b"\\t"),
+        b'\\' => Some(b"\\\\"),
+        b'\0' => Some(b"\\0"),
+        _ => None,
+    })
 }
 
 impl Row {

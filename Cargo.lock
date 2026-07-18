@@ -3,15 +3,6 @@
 version = 3
 
 [[package]]
-name = "aho-corasick"
-version = "1.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
-dependencies = [
- "memchr",
-]
-
-[[package]]
 name = "arbitrary"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -319,7 +310,6 @@ dependencies = [
 name = "jaq-fmts"
 version = "0.1.0"
 dependencies = [
- "aho-corasick",
  "base64",
  "bstr",
  "bytes",
@@ -359,7 +349,6 @@ dependencies = [
 name = "jaq-play"
 version = "0.0.0"
 dependencies = [
- "aho-corasick",
  "console_log",
  "jaq-all",
  "js-sys",
@@ -372,7 +361,6 @@ dependencies = [
 name = "jaq-std"
 version = "3.0.1"
 dependencies = [
- "aho-corasick",
  "base64",
  "bstr",
  "jaq-core",

@@ -61,16 +61,34 @@ fn html_styles() -> Styles {
     }
 }
 
-const AC_PATTERNS: &[&str] = &["&", "<", ">"];
-const AC_REPLACES: &[&str] = &["&amp;", "&lt;", "&gt;"];
+fn escape(c: u8) -> Option<&'static str> {
+    match c {
+        b'&' => Some("&amp;"),
+        b'<' => Some("&lt;"),
+        b'>' => Some("&gt;"),
+        _ => None,
+    }
+}
 
 fn escape_bytes(s: &[u8]) -> Vec<u8> {
-    let ac = aho_corasick::AhoCorasick::new(AC_PATTERNS).unwrap();
-    ac.replace_all_bytes(s, AC_REPLACES)
+    let mut out = Vec::with_capacity(s.len());
+    for b in s {
+        match escape(*b) {
+            Some(esc) => out.extend_from_slice(esc.as_bytes()),
+            None => out.push(*b),
+        }
+    }
+    out
 }
 fn escape_str(s: &str) -> String {
-    let ac = aho_corasick::AhoCorasick::new(AC_PATTERNS).unwrap();
-    ac.replace_all(s, AC_REPLACES)
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match u8::try_from(c).ok().and_then(escape) {
+            Some(esc) => out.push_str(esc),
+            None => out.push(c),
+        }
+    }
+    out
 }
 
 #[allow(dead_code)]
