@@ -160,3 +160,22 @@ fn xml() {
     let xml2: Vec<_> = json_val.iter().map(serialise).collect();
     assert_eq!(xml, xml2.concat());
 }
+
+#[test]
+fn tabular() {
+    let json = br#"["a\tb\\c\nd\re\u0000f", "q\"q", 1, null]"#;
+    let val = read::json::parse_single(json).unwrap();
+    let row = write::tabular::Row::try_from(&val)
+        .map_err(|e| e.to_string())
+        .unwrap();
+
+    let mut tsv = Vec::new();
+    row.write_tsv(&mut tsv).unwrap();
+    // strings are escaped without quoting, null becomes empty
+    assert_eq!(tsv, b"a\\tb\\\\c\\nd\\re\\0f\tq\"q\t1\t");
+
+    let mut csv = Vec::new();
+    row.write_csv(&mut csv).unwrap();
+    // strings are quoted, with only `"` escaped (by doubling)
+    assert_eq!(csv, b"\"a\tb\\c\nd\re\0f\",\"q\"\"q\",1,");
+}

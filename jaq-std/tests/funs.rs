@@ -96,6 +96,19 @@ yields!(
     r#""<p style='visibility: hidden'>sneaky</p>" | escape_html"#,
     "&lt;p style=&apos;visibility: hidden&apos;&gt;sneaky&lt;/p&gt;"
 );
+// entities are unescaped in a single pass without rescanning ("&amp;lt;"),
+// unknown or incomplete entities are preserved ("&x;", "&amp"), and
+// an entity directly after a lone ampersand is unescaped ("&&lt;")
+yields!(
+    unescape_html_entities,
+    r#""&amp;lt; &&lt; &x; &amp &lt;&gt;&quot;&apos;&amp;" | unescape_html"#,
+    "&lt; &< &x; &amp <>\"'&"
+);
+yields!(
+    escape_unescape_html,
+    r#""<a href=\"x&y\">'☃'</a>" | escape_html | unescape_html"#,
+    "<a href=\"x&y\">'☃'</a>"
+);
 yields!(
     encode_uri,
     r#""abc123 ?#+&[]" | encode_uri"#,
