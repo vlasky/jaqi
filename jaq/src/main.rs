@@ -23,6 +23,20 @@ use std::process::{ExitCode, Termination};
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+/// Write a value, followed by a flush if `flush` is true.
+///
+/// When running `jaq -jn '"prompt> " | (., input)'` on a terminal,
+/// the flush is necessary to make "prompt> " appear before `input` blocks.
+/// When stdout is not a terminal, we do not flush after each value,
+/// because [`with_stdout`] flushes once at the end.
+fn write_flush(w: &mut dyn Write, writer: &Writer, v: &Val, flush: bool) -> io::Result<()> {
+    write(w, writer, v)?;
+    if flush {
+        w.flush()?;
+    }
+    Ok(())
+}
+
 extern crate alloc;
 
 fn main() -> io::Result<ExitCode> {
@@ -136,7 +150,11 @@ fn real_main(cli: &Cli) -> Result<ExitCode, Error> {
         let format = unwrap_or_json(cli.from);
         let s = read::read_string(format, io::stdin().lock())?;
         let inputs = read::read(format, io::stdin().lock(), &s, cli.slurp);
-        with_stdout(|out| run(runner, &filter, vars, inputs, |v| write(out, writer, &v)))?
+        with_stdout(|out, tty| {
+            run(runner, &filter, vars, inputs, |v| {
+                write_flush(out, writer, &v, tty)
+            })
+        })?
     } else {
         let mut last = None;
         for file in &cli.files {
@@ -168,9 +186,9 @@ fn real_main(cli: &Cli) -> Result<ExitCode, Error> {
                 tmp.persist(path).map_err(|e| Error::Io(None, e.into()))?;
                 std::fs::set_permissions(path, perms)?;
             } else {
-                last = with_stdout(|out| {
+                last = with_stdout(|out, tty| {
                     run(runner, &filter, vars.clone(), inputs, |v| {
-                        write(out, writer, &v)
+                        write_flush(out, writer, &v, tty)
                     })
                 })?;
             }
