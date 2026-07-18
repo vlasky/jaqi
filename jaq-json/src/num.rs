@@ -95,7 +95,9 @@ impl Num {
 
     pub(crate) fn length(&self) -> Self {
         match self {
-            Self::Int(i) => Self::Int(i.abs()),
+            // `i.abs()` would overflow for `isize::MIN`, so fall back to
+            // a big integer in that case, like `Num::neg` does
+            Self::Int(i) => int_or_big(i.checked_abs(), [*i], |[i]| -i),
             Self::BigInt(i) => match i.sign() {
                 Sign::Plus | Sign::NoSign => Self::BigInt(i.clone()),
                 Sign::Minus => Self::BigInt(BigInt::from(i.magnitude().clone()).into()),
