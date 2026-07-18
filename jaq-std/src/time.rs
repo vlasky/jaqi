@@ -5,7 +5,11 @@ use jiff::{civil::DateTime, fmt::strtime, tz, Timestamp};
 /// Convert a UNIX epoch timestamp with optional fractions.
 fn epoch_to_timestamp<V: ValT>(v: &V) -> Result<Timestamp, Error<V>> {
     let val = match v.as_isize() {
-        Some(i) => i as i64 * 1000000,
+        // saturate the multiplication instead of letting it overflow
+        // (which would panic in debug and wrap in release); the
+        // saturated value is out of range for `from_microsecond`,
+        // which then reports the same error as the float path below
+        Some(i) => (i as i64).saturating_mul(1000000),
         None => (v.try_as_f64()? * 1000000.0) as i64,
     };
     Timestamp::from_microsecond(val).map_err(Error::str)
