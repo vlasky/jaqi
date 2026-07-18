@@ -34,11 +34,20 @@ const BUF_SIZE: usize = 4096;
 ///
 /// - 16 bytes is the size of a [`jaq_json::Val`] (as should be the case on x86_64),
 /// - 1024 is the maximal capacity that we pre-allocate, and
-/// - 8192 is the maximal stack size.
+/// - 128 is the maximal nesting depth ([`MAX_DEPTH`]).
 ///
 /// Then the maximum amount of memory that can be consumed by such an array is
-/// 16 bytes/value * 1024 values/array * 8192 arrays = 134217728 bytes = 128MB.
+/// 16 bytes/value * 1024 values/array * 128 arrays = 2097152 bytes = 2MB.
+/// (Nested maps can consume twice that amount, because
+/// every map entry holds a key and a value.)
 const MAX_CAP: usize = 1024;
+
+/// Maximal nesting depth of containers (arrays/maps).
+///
+/// Parsing a container recurses, so without this limit,
+/// a small input like `[[[...` (one byte per level) overflows the stack,
+/// aborting the process.
+const MAX_DEPTH: usize = 128;
 
 /// Error that may indicate end of file.
 trait IsEof {
@@ -65,6 +74,8 @@ enum PError<E> {
     Tag(u64),
     /// unexpected break
     Break,
+    /// maximal nesting depth exceeded
+    Depth,
 }
 
 impl<E: fmt::Debug + fmt::Display> std::error::Error for PError<E> {}
@@ -83,6 +94,7 @@ impl<E: fmt::Display> fmt::Display for PError<E> {
             Self::Simple(s) => write!(f, "unsupported simple value: {s}"),
             Self::Tag(t) => write!(f, "unsupported tag: {t}"),
             Self::Break => write!(f, "unexpected break"),
+            Self::Depth => write!(f, "maximal nesting depth ({MAX_DEPTH}) exceeded"),
         }
     }
 }
@@ -115,7 +127,7 @@ where
     core::iter::from_fn(move || {
         let offset = decoder.offset();
         match decoder.pull() {
-            Ok(header) => Some(parse(header, &mut decoder)),
+            Ok(header) => Some(parse(header, &mut decoder, 0)),
             // The following is a hack which is unfortunately necessary because
             // ciborium does not currently give us any means of checking for EOF
             // (<https://github.com/enarx/ciborium/issues/159>).
@@ -194,7 +206,18 @@ fn biguint<R: Read>(decoder: &mut Decoder<R>) -> Result<BigUint, Error<R::Error>
     }
 }
 
-fn parse<R: Read>(header: Header, decoder: &mut Decoder<R>) -> Result<Val, PError<R::Error>> {
+fn parse<R: Read>(
+    header: Header,
+    decoder: &mut Decoder<R>,
+    depth: usize,
+) -> Result<Val, PError<R::Error>> {
+    let deeper = || {
+        if depth < MAX_DEPTH {
+            Ok(depth + 1)
+        } else {
+            Err(PError::Depth)
+        }
+    };
     match header {
         Header::Text(len) => Ok(Val::from(parse_str(len, decoder)?)),
         Header::Bytes(len) => Ok(Val::byte_str(parse_bytes(len, decoder)?)),
@@ -212,12 +235,16 @@ fn parse<R: Read>(header: Header, decoder: &mut Decoder<R>) -> Result<Val, PErro
         Header::Positive(pos) => Ok(Val::Num(Num::from_integral(pos))),
         Header::Negative(neg) => Ok(Val::Num(Num::from_integral(neg as i128 ^ !0))),
         Header::Float(f) => Ok(Val::from(f)),
-        Header::Array(size) => Ok(Val::Arr(
-            with_size(size, decoder, |h, d| parse(h, d))?.into(),
-        )),
+        Header::Array(size) => {
+            let depth = deeper()?;
+            Ok(Val::Arr(
+                with_size(size, decoder, |h, d| parse(h, d, depth))?.into(),
+            ))
+        }
         Header::Map(size) => {
+            let depth = deeper()?;
             let o = with_size(size, decoder, |h, d| {
-                Ok((parse(h, d)?, parse(d.pull()?, d)?))
+                Ok((parse(h, d, depth)?, parse(d.pull()?, d, depth)?))
             })?;
             Ok(Val::obj(o.into_iter().collect()))
         }

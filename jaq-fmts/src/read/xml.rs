@@ -8,8 +8,15 @@ use xmlparser::{ElementEnd, ExternalId, StrSpan, TextPos, Token, Tokenizer};
 /// Parse a stream of root XML values.
 pub fn parse_many(s: &str) -> impl Iterator<Item = Result<Val, Error>> + '_ {
     let mut tokens = Tokenizer::from(s);
-    core::iter::from_fn(move || tokens.next().map(|tk| parse(tk?, &mut tokens)))
+    core::iter::from_fn(move || tokens.next().map(|tk| parse(tk?, &mut tokens, 0)))
 }
+
+/// Maximal nesting depth of elements.
+///
+/// Parsing an element recurses, so without this limit,
+/// a small input like `<a><a><a>...` overflows the stack,
+/// aborting the process.
+const MAX_DEPTH: usize = 128;
 
 /// Prefix and local name of a tag.
 #[derive(Debug)]
@@ -56,6 +63,8 @@ pub enum Error {
     Unmatched(TagPos, TagPos),
     /// Unclosed tag, e.g. `<a>` or `<a`
     Unclosed(TagPos),
+    /// Maximal nesting depth exceeded
+    Depth(TagPos),
 }
 
 impl fmt::Display for Error {
@@ -67,6 +76,9 @@ impl fmt::Display for Error {
             }
             Self::Unclosed(open) => {
                 write!(f, "expected closing tag for {open}, found end of file")
+            }
+            Self::Depth(open) => {
+                write!(f, "maximal nesting depth ({MAX_DEPTH}) exceeded by {open}")
             }
         }
     }
@@ -80,7 +92,7 @@ impl From<xmlparser::Error> for Error {
 
 impl std::error::Error for Error {}
 
-fn parse_children(tag: &Tag, tokens: &mut Tokenizer) -> Result<Vec<Val>, Error> {
+fn parse_children(tag: &Tag, tokens: &mut Tokenizer, depth: usize) -> Result<Vec<Val>, Error> {
     let mut children = Vec::new();
     loop {
         let next = tokens.next();
@@ -96,12 +108,15 @@ fn parse_children(tag: &Tag, tokens: &mut Tokenizer) -> Result<Vec<Val>, Error> 
                     Err(Error::Unmatched(tag.tag_pos(tokens), tag_.tag_pos(tokens)))?
                 }
             }
-            tk => children.push(parse(tk, tokens)?),
+            tk => children.push(parse(tk, tokens, depth)?),
         }
     }
 }
 
-fn tac(tag: &Tag, tokens: &mut Tokenizer) -> Result<Val, Error> {
+fn tac(tag: &Tag, tokens: &mut Tokenizer, depth: usize) -> Result<Val, Error> {
+    if depth > MAX_DEPTH {
+        return Err(Error::Depth(tag.tag_pos(tokens)));
+    }
     let mut attrs = Vec::new();
     let children = loop {
         let next = tokens.next();
@@ -116,7 +131,7 @@ fn tac(tag: &Tag, tokens: &mut Tokenizer) -> Result<Val, Error> {
                 value.as_str().to_owned().into(),
             )),
             Token::ElementEnd { end, .. } => match end {
-                ElementEnd::Open => break Some(parse_children(tag, tokens)?),
+                ElementEnd::Open => break Some(parse_children(tag, tokens, depth)?),
                 ElementEnd::Empty => break None,
                 // SAFETY: xmlparser returns an error instead of yielding this
                 ElementEnd::Close(..) => panic!(),
@@ -153,7 +168,7 @@ fn make_obj<T: Into<Val>, const N: usize>(arr: [(&str, Option<T>); N]) -> Val {
     Val::obj(iter.collect())
 }
 
-fn parse(tk: Token, tokens: &mut Tokenizer) -> Result<Val, Error> {
+fn parse(tk: Token, tokens: &mut Tokenizer, depth: usize) -> Result<Val, Error> {
     let ss_val = |ss: StrSpan| ss.as_str().to_owned().into();
     let singleton = |k: &str, v| Val::obj(core::iter::once((k.to_string().into(), v)).collect());
 
@@ -182,7 +197,7 @@ fn parse(tk: Token, tokens: &mut Tokenizer) -> Result<Val, Error> {
         ),
         Token::Cdata { text, .. } => singleton("cdata", ss_val(text)),
         Token::Comment { text, .. } => singleton("comment", ss_val(text)),
-        Token::ElementStart { prefix, local, .. } => tac(&Tag(prefix, local), tokens)?,
+        Token::ElementStart { prefix, local, .. } => tac(&Tag(prefix, local), tokens, depth + 1)?,
         Token::Text { text } => ss_val(text),
         // SAFETY: xmlparser returns an error instead of yielding this
         Token::Attribute { .. }
