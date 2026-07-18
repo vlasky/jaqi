@@ -104,7 +104,7 @@ fn parse_num<L: LexAlloc>(lexer: &mut L) -> Result<Num, hifijson::Error> {
             if parts.is_int() {
                 Num::from_str_radix(num, 10).unwrap()
             } else {
-                Num::Dec(num.to_string().into())
+                Num::dec(num.to_string())
             }
         }
         _ => Err(hifijson::num::Error::ExpectedDigit)?,
