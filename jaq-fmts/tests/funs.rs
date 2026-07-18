@@ -26,7 +26,12 @@ yields!(
 );
 yields!(
     fromxml_too_deep,
-    r#""<a>" * 129 | try fromxml catch (contains("maximal nesting depth (128) exceeded by a (at "))"#,
+    r#""<a>" * 129 | try fromxml catch endswith("maximal nesting depth (128) exceeded by a (at 1:386)")"#,
+    true
+);
+yields!(
+    fromxml_unmatched_pos,
+    r#""<r>\n  <a></b></r>" | try fromxml catch endswith("expected closing tag for a (at 2:4), found b (at 2:8)")"#,
     true
 );
 
