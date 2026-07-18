@@ -152,7 +152,7 @@ fn real_main(cli: &Cli) -> Result<ExitCode, Error> {
         let inputs = read::read(format, io::stdin().lock(), &s, cli.slurp);
         with_stdout(|out, tty| {
             run(runner, &filter, vars, inputs, |v| {
-                write_flush(out, writer, &v, tty)
+                write_flush(out, writer, &v, tty || cli.unbuffered)
             })
         })?
     } else {
@@ -188,7 +188,7 @@ fn real_main(cli: &Cli) -> Result<ExitCode, Error> {
             } else {
                 last = with_stdout(|out, tty| {
                     run(runner, &filter, vars.clone(), inputs, |v| {
-                        write_flush(out, writer, &v, tty)
+                        write_flush(out, writer, &v, tty || cli.unbuffered)
                     })
                 })?;
             }

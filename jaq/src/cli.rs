@@ -27,6 +27,8 @@ pub struct Cli {
     pub monochrome_output: bool,
     pub tab: bool,
     pub indent: Option<usize>,
+    /// Flush output after each value, even when stdout is not a terminal.
+    pub unbuffered: bool,
 
     // Compilation options
     pub from_file: bool,
@@ -104,6 +106,7 @@ impl Cli {
             "color-output" => self.short('C', args)?,
             "monochrome-output" => self.short('M', args)?,
             "tab" => self.tab = true,
+            "unbuffered" => self.unbuffered = true,
             "indent" => {
                 self.indent = Some(args.next().and_then(int).ok_or(Error::Int("--indent"))?)
             }
