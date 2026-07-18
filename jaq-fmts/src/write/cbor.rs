@@ -50,7 +50,7 @@ fn encode<W: Write>(v: &Val, encoder: &mut Encoder<W>) -> Result<(), W::Error> {
             encoder.bytes(&u.1, None)
         }
         Val::Num(Num::Float(f)) => encoder.push(Header::Float(*f)),
-        Val::Num(Num::Dec(d)) => encode(&Val::Num(Num::from_dec_str(d)), encoder),
+        Val::Num(Num::Dec(d)) => encode(&Val::Num(Num::Float(d.as_f64())), encoder),
         Val::TStr(s) => encoder.text(&String::from_utf8_lossy(s), None),
         Val::BStr(b) => encoder.bytes(b, None),
         Val::Arr(a) => {

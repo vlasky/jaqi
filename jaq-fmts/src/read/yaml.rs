@@ -218,7 +218,7 @@ fn parse_float(s: &str) -> Option<Val> {
         let f = f64::INFINITY;
         Some(Val::from(if sign == Some('-') { -f } else { f }))
     } else {
-        normalise_float(sign, rest).map(|f| Val::Num(Num::Dec(f.into())))
+        normalise_float(sign, rest).map(|f| Val::Num(Num::dec(f)))
     }
 }
 

@@ -27,7 +27,42 @@ pub enum Num {
     /// Floating-point number
     Float(f64),
     /// Decimal number
-    Dec(Rc<String>),
+    Dec(Rc<Dec>),
+}
+
+/// Decimal number, keeping its literal representation for precise output.
+///
+/// This caches the floating-point value of the literal, so that
+/// operations such as comparisons do not have to re-parse the literal.
+#[derive(Clone, Debug)]
+pub struct Dec {
+    lit: String,
+    num: f64,
+}
+
+impl Dec {
+    /// Create a decimal number from its literal representation.
+    pub fn new(lit: String) -> Self {
+        // TODO: changed to NaN!
+        let num = lit.parse().unwrap_or(f64::NAN);
+        Self { lit, num }
+    }
+
+    /// Literal representation of the number.
+    pub fn as_str(&self) -> &str {
+        &self.lit
+    }
+
+    /// Floating-point value of the number (NaN if the literal is invalid).
+    pub fn as_f64(&self) -> f64 {
+        self.num
+    }
+}
+
+impl fmt::Display for Dec {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.lit)
+    }
 }
 
 impl Num {
@@ -36,8 +71,13 @@ impl Num {
         Self::BigInt(i.into())
     }
 
+    /// Create a decimal number from its literal representation.
+    pub fn dec(lit: String) -> Self {
+        Self::Dec(Rc::new(Dec::new(lit)))
+    }
+
     pub(crate) fn from_str(s: &str) -> Self {
-        Self::from_str_radix(s, 10).unwrap_or_else(|| Self::Dec(Rc::new(s.to_string())))
+        Self::from_str_radix(s, 10).unwrap_or_else(|| Self::dec(s.to_string()))
     }
 
     /// Convert from an integral type to a machine-sized or big integer.
@@ -89,7 +129,7 @@ impl Num {
             Self::Int(n) => *n as f64,
             Self::BigInt(n) => n.to_f64().unwrap(),
             Self::Float(n) => *n,
-            Self::Dec(n) => n.parse().unwrap(),
+            Self::Dec(n) => n.num,
         }
     }
 
@@ -102,7 +142,7 @@ impl Num {
                 Sign::Plus | Sign::NoSign => Self::BigInt(i.clone()),
                 Sign::Minus => Self::BigInt(BigInt::from(i.magnitude().clone()).into()),
             },
-            Self::Dec(n) => Self::from_dec_str(n).length(),
+            Self::Dec(n) => Self::Float(n.num).length(),
             Self::Float(f) => Self::Float(f.abs()),
         }
     }
@@ -177,8 +217,8 @@ impl core::ops::Add for Num {
             (BigInt(x), BigInt(y)) => Self::big_int(&*x + &*y),
             (BigInt(i), Float(f)) | (Float(f), BigInt(i)) => Float(f + i.to_f64().unwrap()),
             (Float(x), Float(y)) => Float(x + y),
-            (Dec(n), r) => Self::from_dec_str(&n) + r,
-            (l, Dec(n)) => l + Self::from_dec_str(&n),
+            (Dec(n), r) => Float(n.num) + r,
+            (l, Dec(n)) => l + Float(n.num),
         }
     }
 }
@@ -198,8 +238,8 @@ impl core::ops::Sub for Num {
             (Float(f), BigInt(i)) => Float(f - i.to_f64().unwrap()),
             (BigInt(i), Float(f)) => Float(i.to_f64().unwrap() - f),
             (Float(x), Float(y)) => Float(x - y),
-            (Dec(n), r) => Self::from_dec_str(&n) - r,
-            (l, Dec(n)) => l - Self::from_dec_str(&n),
+            (Dec(n), r) => Float(n.num) - r,
+            (l, Dec(n)) => l - Float(n.num),
         }
     }
 }
@@ -217,8 +257,8 @@ impl core::ops::Mul for Num {
             (BigInt(i), Float(f)) | (Float(f), BigInt(i)) => Float(f * i.to_f64().unwrap()),
             (Float(f), Int(i)) | (Int(i), Float(f)) => Float(f * i as f64),
             (Float(x), Float(y)) => Float(x * y),
-            (Dec(n), r) => Self::from_dec_str(&n) * r,
-            (l, Dec(n)) => l * Self::from_dec_str(&n),
+            (Dec(n), r) => Float(n.num) * r,
+            (l, Dec(n)) => l * Float(n.num),
         }
     }
 }
@@ -233,8 +273,8 @@ impl core::ops::Div for Num {
             (BigInt(l), r) => Float(l.to_f64().unwrap()) / r,
             (l, BigInt(r)) => l / Float(r.to_f64().unwrap()),
             (Float(x), Float(y)) => Float(x / y),
-            (Dec(n), r) => Self::from_dec_str(&n) / r,
-            (l, Dec(n)) => l / Self::from_dec_str(&n),
+            (Dec(n), r) => Float(n.num) / r,
+            (l, Dec(n)) => l / Float(n.num),
         }
     }
 }
@@ -258,8 +298,8 @@ impl core::ops::Rem for Num {
             (BigInt(i), Float(f)) => Float(i.to_f64().unwrap() % f),
             (Float(f), BigInt(i)) => Float(f % i.to_f64().unwrap()),
             (Float(x), Float(y)) => Float(x % y),
-            (Dec(n), r) => Self::from_dec_str(&n) % r,
-            (l, Dec(n)) => l % Self::from_dec_str(&n),
+            (Dec(n), r) => Float(n.num) % r,
+            (l, Dec(n)) => l % Float(n.num),
         }
     }
 }
@@ -271,9 +311,9 @@ impl core::ops::Neg for Num {
             Self::Int(x) => int_or_big(x.checked_neg(), [x], |[x]| -x),
             Self::BigInt(x) => Self::big_int(-&*x),
             Self::Float(x) => Self::Float(-x),
-            Self::Dec(n) => match n.strip_prefix('-') {
-                Some(pos) => Self::Dec(pos.to_string().into()),
-                None => Self::Dec(alloc::format!("-{n}").into()),
+            Self::Dec(n) => match n.lit.strip_prefix('-') {
+                Some(pos) => Self::dec(pos.to_string()),
+                None => Self::dec(alloc::format!("-{n}")),
             },
         }
     }
@@ -294,7 +334,7 @@ impl Hash for Num {
                     f.to_ne_bytes().hash(state);
                 }
             }
-            Self::Dec(d) => Self::from_dec_str(d).hash(state),
+            Self::Dec(d) => Self::Float(d.num).hash(state),
             Self::BigInt(i) => {
                 let f = i.to_f64().unwrap();
                 if f.is_finite() {
@@ -340,8 +380,8 @@ impl PartialEq for Num {
             }
             (Self::Float(x), Self::Float(y)) => float_eq(*x, *y),
             (Self::Dec(x), Self::Dec(y)) if Rc::ptr_eq(x, y) => true,
-            (Self::Dec(n), y) => &Self::from_dec_str(n) == y,
-            (x, Self::Dec(n)) => x == &Self::from_dec_str(n),
+            (Self::Dec(n), y) => &Self::Float(n.num) == y,
+            (x, Self::Dec(n)) => x == &Self::Float(n.num),
         }
     }
 }
@@ -368,8 +408,8 @@ impl Ord for Num {
             (Self::Float(x), Self::BigInt(y)) => float_cmp(*x, y.to_f64().unwrap()),
             (Self::Float(x), Self::Float(y)) => float_cmp(*x, *y),
             (Self::Dec(x), Self::Dec(y)) if Rc::ptr_eq(x, y) => Ordering::Equal,
-            (Self::Dec(n), y) => Self::from_dec_str(n).cmp(y),
-            (x, Self::Dec(n)) => x.cmp(&Self::from_dec_str(n)),
+            (Self::Dec(n), y) => Self::Float(n.num).cmp(y),
+            (x, Self::Dec(n)) => x.cmp(&Self::Float(n.num)),
         }
     }
 }

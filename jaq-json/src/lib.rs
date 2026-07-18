@@ -29,7 +29,7 @@ use num_bigint::BigInt;
 use num_traits::{cast::ToPrimitive, Signed};
 
 pub use funs::{bytes_valrs, funs};
-pub use num::Num;
+pub use num::{Dec, Num};
 
 #[cfg(not(feature = "sync"))]
 pub use alloc::rc::Rc;
