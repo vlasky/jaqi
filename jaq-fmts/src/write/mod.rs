@@ -33,12 +33,22 @@ pub struct Writer {
     pub join: bool,
 }
 
-/// Buffer writes if stdout is terminal, else just lock stdout.
-pub fn with_stdout<T>(f: impl FnOnce(&mut dyn Write) -> T) -> T {
+/// Run `f` on locked stdout, buffering writes if stdout is not a terminal.
+///
+/// The closure also receives whether stdout is a terminal, so that
+/// it can decide whether to flush after individual outputs.
+/// If stdout is not a terminal, then the buffer is flushed at the end,
+/// propagating any error that occurs during the flush.
+pub fn with_stdout<T, E: From<io::Error>>(
+    f: impl FnOnce(&mut dyn Write, bool) -> Result<T, E>,
+) -> Result<T, E> {
     let stdout = io::stdout();
     if stdout.is_terminal() {
-        f(&mut stdout.lock())
+        f(&mut stdout.lock(), true)
     } else {
-        f(&mut io::BufWriter::new(stdout.lock()))
+        let mut w = io::BufWriter::new(stdout.lock());
+        let y = f(&mut w, false)?;
+        w.flush()?;
+        Ok(y)
     }
 }

@@ -47,7 +47,5 @@ pub fn write(w: &mut dyn Write, writer: &Writer, val: &Val) -> Result {
         writeln!(w, "...")?;
     }
 
-    // when running `jaq -jn '"prompt> " | (., input)'`,
-    // this flush is necessary to make "prompt> " appear first
-    w.flush()
+    Ok(())
 }
