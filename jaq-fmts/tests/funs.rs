@@ -7,6 +7,29 @@ yields!(fromcbor1, "[41] | tobytes | fromcbor", -10);
 yields!(fromcbor2, "[99, 230, 176, 180] | tobytes | fromcbor", "水");
 yields!(tocbor, "-10 | tocbor | . == ([41] | tobytes)", true);
 
+// 129 = 0x81 (array of length 1), 128 = 0x80 (array of length 0)
+yields!(
+    fromcbor_deep,
+    "[limit(127; repeat(129)), 128] | tobytes | fromcbor | getpath([limit(127; repeat(0))])",
+    json!([])
+);
+yields!(
+    fromcbor_too_deep,
+    "[limit(129; repeat(129))] | tobytes | try fromcbor catch endswith(\"maximal nesting depth (128) exceeded\")",
+    true
+);
+
+yields!(
+    fromxml_deep,
+    r#""<a>" * 128 + "x" + "</a>" * 128 | fromxml | getpath([limit(256; repeat("c", 0))])"#,
+    "x"
+);
+yields!(
+    fromxml_too_deep,
+    r#""<a>" * 129 | try fromxml catch (contains("maximal nesting depth (128) exceeded by a (at "))"#,
+    true
+);
+
 // "---" starts a new value, "..." ends a previous value
 yields!(fromyaml_doc1, r#""---\n1" | fromyaml"#, 1);
 yields!(fromyaml_doc2, r#""1\n..." | fromyaml"#, 1);
