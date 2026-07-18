@@ -39,7 +39,14 @@ impl fmt::Display for Tag<'_> {
 
 impl Tag<'_> {
     fn tag_pos(&self, tokens: &Tokenizer) -> TagPos {
-        let pos = tokens.stream().gen_text_pos_from(self.0.start());
+        // for tags without prefix, the prefix is an empty span at position 0,
+        // so take the position of the local name instead
+        let start = if self.0.is_empty() {
+            self.1.start()
+        } else {
+            self.0.start()
+        };
+        let pos = tokens.stream().gen_text_pos_from(start);
         TagPos(self.to_string(), pos)
     }
 }
