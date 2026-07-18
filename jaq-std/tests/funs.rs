@@ -43,6 +43,15 @@ yields!(
     "1970-01-02 00:00:00.123456"
 );
 yields!(gmtime, r"86400 | gmtime", [1970, 0, 2, 0, 0, 0, 5, 1]);
+// a huge epoch overflows the microsecond conversion; this must
+// yield an error instead of panicking (debug) or wrapping (release).
+// On success gmtime yields an array, so catching "err" (rather than
+// getting "ok") proves that the error path was taken.
+yields!(
+    gmtime_overflow,
+    r#"100000000000000000 | try (gmtime | "ok") catch "err""#,
+    "err"
+);
 yields!(
     gmtime_mu,
     r"86400.123456 | gmtime",
