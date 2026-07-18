@@ -1,6 +1,6 @@
 use jaq_all::{data, fmts, load};
 use jaq_core::unwrap_valr;
-use std::io::{self, Error, ErrorKind};
+use std::io::{self, Error, ErrorKind, Write};
 
 fn main() -> io::Result<()> {
     let filter = std::env::args()
@@ -21,5 +21,6 @@ fn main() -> io::Result<()> {
     data::run(&runner, &filter, vars, inputs, fi, |v| {
         let v = unwrap_valr(v).map_err(|e| Error::new(ErrorKind::Other, e.to_string()));
         fmts::write::write(stdout, &runner.writer, &v?)
-    })
+    })?;
+    stdout.flush()
 }

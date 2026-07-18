@@ -24,6 +24,7 @@ Output options:
   -M, --monochrome-output   Do not color output
       --tab                 Use tabs for indentation rather than spaces
       --indent <N>          Use N spaces for indentation [default: 2]
+      --unbuffered          Flush output after each value
       --to <FORMAT>         Write output in given format, e.g. cbor
 
 Compilation options:

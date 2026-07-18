@@ -36,9 +36,11 @@ fn eval(runner: &Runner, code: String, input: Val) -> Result<(), Error> {
     let ctx = Vars::new(ctx);
     let inputs = core::iter::once(Ok(input));
     let writer = &runner.writer;
-    with_stdout(|out, tty| {
+    // always flush, because the REPL is interactive by nature:
+    // its outputs should be visible before the next prompt appears
+    with_stdout(|out, _tty| {
         run(runner, &filter, ctx, inputs, |v| {
-            write_flush(out, writer, &v, tty)
+            write_flush(out, writer, &v, true)
         })
     })?;
     Ok(())

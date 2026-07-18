@@ -354,6 +354,21 @@ $ echo [1, [2]] | jaq       | jaq -Rs
 
 Use _N_ spaces for indentation (default: 2).
 
+{#--unbuffered}
+### `--unbuffered`
+
+Flush the output after each value.
+
+When the output is not a terminal, jaq buffers it and
+flushes it only once all values have been written.
+This flag makes jaq flush the output after each value instead,
+which is useful when another process consumes jaq's output as
+soon as it is produced; for example:
+
+```
+jaq --unbuffered .a live.json | while read -r a; do echo "got $a"; done
+```
+
 ### `NO_COLOR`
 
 If the environment variable `NO_COLOR` is set to a non-empty value, then

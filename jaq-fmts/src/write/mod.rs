@@ -39,6 +39,10 @@ pub struct Writer {
 /// it can decide whether to flush after individual outputs.
 /// If stdout is not a terminal, then the buffer is flushed at the end,
 /// propagating any error that occurs during the flush.
+///
+/// Note that nested calls of this function buffer independently;
+/// in particular, output written by an inner call may appear before
+/// output that an outer call has written, but not yet flushed.
 pub fn with_stdout<T, E: From<io::Error>>(
     f: impl FnOnce(&mut dyn Write, bool) -> Result<T, E>,
 ) -> Result<T, E> {
@@ -47,8 +51,11 @@ pub fn with_stdout<T, E: From<io::Error>>(
         f(&mut stdout.lock(), true)
     } else {
         let mut w = io::BufWriter::new(stdout.lock());
-        let y = f(&mut w, false)?;
-        w.flush()?;
+        let y = f(&mut w, false);
+        let flushed = w.flush();
+        // if both the closure and the flush fail, return the closure's error
+        let y = y?;
+        flushed?;
         Ok(y)
     }
 }
