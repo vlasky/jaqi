@@ -132,6 +132,14 @@ type CodeBlock = codesnake::Block<codesnake::CodeWidth<String>, Box<dyn Display>
 /// Function to apply color to snakes/text.
 pub type Paint = fn(&mut Formatter, &Option<Color>, &dyn Display) -> fmt::Result;
 
+/// Function to escape text that is interpolated into the output.
+///
+/// This is the identity by default.
+/// It exists so that consumers which render reports into a markup language
+/// (such as the HTML playground) can escape the parts of a report that
+/// originate from user input, namely the error message and the code snippet.
+pub type Escape = fn(&str) -> String;
+
 struct FromFn<F>(F);
 
 fn from_fn<F: Fn(&mut Formatter) -> fmt::Result>(f: F) -> FromFn<F> {
@@ -147,19 +155,35 @@ impl<F: Fn(&mut Formatter) -> fmt::Result> Display for FromFn<F> {
 impl Report {
     /// Convert report to a code block.
     pub fn to_block(&self, idx: &codesnake::LineIndex, paint: Paint) -> CodeBlock {
+        self.to_block_with_escape(idx, paint, |s| s.to_owned())
+    }
+
+    /// Convert report to a code block, escaping interpolated text.
+    ///
+    /// The `escape` function is applied to the label text and the code
+    /// snippet, but not to the colors added by `paint`. See [`Escape`].
+    pub fn to_block_with_escape(
+        &self,
+        idx: &codesnake::LineIndex,
+        paint: Paint,
+        escape: Escape,
+    ) -> CodeBlock {
         use codesnake::{Block, CodeWidth, Label};
         let labels = self.labels.iter().cloned().map(|(range, text, color)| {
             Label::new(range)
                 .with_style(Some(color))
                 .with_text(Box::new(from_fn(move |f| {
-                    text.iter().try_for_each(|(text, col)| paint(f, col, text))
+                    text.iter()
+                        .try_for_each(|(text, col)| paint(f, col, &escape(text)))
                 })) as Box<dyn Display>)
         });
         let block = Block::new(idx, labels).unwrap();
-        block.with_paint(paint).map_code(|c| {
+        block.with_paint(paint).map_code(move |c| {
             let c = c.replace('\t', "    ");
+            // compute the width on the unescaped text, because escaping may
+            // change the byte length without changing the displayed width
             let w = unicode_width::UnicodeWidthStr::width(&*c);
-            CodeWidth::new(c, core::cmp::max(w, 1))
+            CodeWidth::new(escape(&c), core::cmp::max(w, 1))
         })
     }
 }
@@ -168,17 +192,20 @@ impl Report {
 pub struct FileReportsDisp<'a, P> {
     file_reports: &'a FileReports<P>,
     paint: Paint,
+    escape: Escape,
     path: fn(&P) -> String,
 }
 
 impl<'a, P> FileReportsDisp<'a, P> {
     /// Construct a new pretty-printer for file reports.
     ///
-    /// By default, this does not apply any colors and does not print file paths.
+    /// By default, this does not apply any colors, does not escape text,
+    /// and does not print file paths.
     pub fn new(file_reports: &'a FileReports<P>) -> Self {
         Self {
             file_reports,
             paint: |f, _style, disp| disp.fmt(f),
+            escape: |s| s.to_owned(),
             path: |_| "".into(),
         }
     }
@@ -186,6 +213,16 @@ impl<'a, P> FileReportsDisp<'a, P> {
     /// Set a function that determines how colors should be applied to text.
     pub fn with_paint(mut self, paint: Paint) -> Self {
         self.paint = paint;
+        self
+    }
+
+    /// Set a function that escapes text originating from user input.
+    ///
+    /// This is applied to the error message and to the code snippet, so that
+    /// a consumer rendering into a markup language does not interpret user
+    /// input as markup. Colors (via [`Self::with_paint`]) are not escaped.
+    pub fn with_escape(mut self, escape: Escape) -> Self {
+        self.escape = escape;
         self
     }
 
@@ -202,8 +239,8 @@ impl<'a, P> Display for FileReportsDisp<'a, P> {
         let path = (self.path)(&file.path);
         let idx = codesnake::LineIndex::new(&file.code);
         reports.iter().try_for_each(|e| {
-            writeln!(f, "Error: {}", e.message)?;
-            let block = e.to_block(&idx, self.paint);
+            writeln!(f, "Error: {}", (self.escape)(&e.message))?;
+            let block = e.to_block_with_escape(&idx, self.paint, self.escape);
             writeln!(f, "{}{}", block.prologue(), path)?;
             writeln!(f, "{}", block.space_vert())?;
             writeln!(f, "{}{}", block, block.epilogue())

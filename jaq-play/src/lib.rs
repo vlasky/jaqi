@@ -181,13 +181,16 @@ pub fn run(filter: &str, input: &str, settings: &JsValue, scope: &Scope) {
     let inputs = read_str(&settings, input);
 
     match compile(filter) {
-        Err(file_reports) => file_reports
-            .iter()
-            .for_each(|fr| post(format!("{}", FileReportsDisp::new(fr).with_paint(color)))),
+        Err(file_reports) => file_reports.iter().for_each(|fr| {
+            let disp = FileReportsDisp::new(fr)
+                .with_paint(color)
+                .with_escape(escape_str);
+            post(format!("{disp}"))
+        }),
         Ok(filter) => match data::run(runner, &filter, vars, inputs, Error::Hifijson, post_value) {
             Ok(()) => (),
-            Err(Error::Hifijson(e)) => post(format!("Parse error: {e}")),
-            Err(Error::Jaq(e)) => post(format!("Error: {e}")),
+            Err(Error::Hifijson(e)) => post(format!("Parse error: {}", escape_str(&e))),
+            Err(Error::Jaq(e)) => post(format!("Error: {}", escape_str(&e.to_string()))),
             Err(Error::Halt(exit_code)) => post(format!("Exited with code {exit_code}")),
         },
     }
