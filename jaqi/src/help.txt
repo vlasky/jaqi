@@ -1,6 +1,6 @@
 Just Another Query Tool
 
-Usage: jaq [OPTION]... [FILTER] [ARG]...
+Usage: jaqi [OPTION]... [FILTER] [ARG]...
 
 Arguments:
   [FILTER]  Filter to execute

@@ -173,7 +173,7 @@ fn real_main(cli: &Cli) -> Result<ExitCode, Error> {
                 // create a temporary file where output is written to
                 let location = path.parent().unwrap();
                 let mut tmp = tempfile::Builder::new()
-                    .prefix("jaq")
+                    .prefix("jaqi")
                     .tempfile_in(location)?;
 
                 last = run(runner, &filter, vars.clone(), inputs, |output| {

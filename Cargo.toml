@@ -5,7 +5,7 @@ members = [
     "jaq-json",
     "jaq-fmts",
     "jaq-all",
-    "jaq",
+    "jaqi",
     "jaq-play",
 ]
 

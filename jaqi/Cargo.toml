@@ -1,12 +1,15 @@
 [package]
-name = "jaq"
+name = "jaqi"
 version = "3.1.0"
-authors = ["Michael Färber <michael.faerber@gedenkt.at>"]
+authors = [
+    "Vlad Lasky <github@vladlasky.com>",
+    "Michael Färber <michael.faerber@gedenkt.at>",
+]
 edition = "2021"
 license = "MIT"
 readme = "../README.md"
-description = "Just another JSON query tool"
-repository = "https://github.com/01mf02/jaq"
+description = "A fast JSON query tool, forked from jaq"
+repository = "https://github.com/vlasky/jaqi"
 keywords = ["json", "query", "jq"]
 categories = ["command-line-utilities", "compilers", "parser-implementations"]
 rust-version = "1.70"
