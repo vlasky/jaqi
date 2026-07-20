@@ -1,7 +1,7 @@
 use std::{env, io, process, str};
 
 fn golden_test(args: &[&str], input: &str, out_ex: &str) -> io::Result<()> {
-    let mut child = process::Command::new(env!("CARGO_BIN_EXE_jaq"))
+    let mut child = process::Command::new(env!("CARGO_BIN_EXE_jaqi"))
         .args(args)
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::piped())

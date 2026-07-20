@@ -25,7 +25,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 /// Write a value, followed by a flush if `flush` is true.
 ///
-/// When running `jaq -jn '"prompt> " | (., input)'` on a terminal,
+/// When running `jaqi -jn '"prompt> " | (., input)'` on a terminal,
 /// the flush is necessary to make "prompt> " appear before `input` blocks.
 /// When stdout is not a terminal, we do not flush after each value,
 /// because [`with_stdout`] flushes once at the end.

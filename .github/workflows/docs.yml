@@ -1,10 +1,11 @@
 name: Generate documentation and run unit tests
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
     paths:
-      - 'docs'
+      - 'docs/**'
   pull_request:
     branches: [ main ]
 

@@ -12,7 +12,7 @@ pub struct Cli {
     pub from: Option<Format>,
     pub null_input: bool,
     /// When input is read from files,
-    /// jaq yields an array for each file, whereas
+    /// jaqi yields an array for each file, whereas
     /// jq produces only a single array.
     pub slurp: bool,
 
