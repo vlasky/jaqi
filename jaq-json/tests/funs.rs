@@ -191,6 +191,11 @@ yields!(
 #[test]
 fn mul_str_overflow() {
     let err = || Error::str("Repeat string result too long");
+    // the multiplier saturates to isize::MAX, so on any target
+    // `"ab" * isize::MAX` overflows the maximal byte length
     fail(json!(null), r#""ab" * 9223372036854775807"#, err());
+    // on 32-bit targets, isize::MAX bytes is only 2 GiB, which a process
+    // with a large enough address space can actually allocate
+    #[cfg(target_pointer_width = "64")]
     fail(json!(null), r#""a" * 9223372036854775807"#, err());
 }
