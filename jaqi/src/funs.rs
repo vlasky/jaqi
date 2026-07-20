@@ -53,7 +53,7 @@ fn repl_with(runner: &Runner, depth: usize, f: impl Fn(String)) -> Result<(), Re
         .auto_add_history(true)
         .build();
     let mut rl = DefaultEditor::with_config(config)?;
-    let history = dirs::cache_dir().map(|dir| dir.join("jaq-history"));
+    let history = dirs::cache_dir().map(|dir| dir.join("jaqi-history"));
     let color = runner.color_stdout();
     let prompt = if color { "\x1b[1m>\x1b[0m" } else { ">" };
     let _ = history.iter().try_for_each(|h| rl.load_history(h));

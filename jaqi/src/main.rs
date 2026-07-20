@@ -41,6 +41,9 @@ extern crate alloc;
 
 fn main() -> io::Result<ExitCode> {
     use env_logger::Env;
+    // the log filter must match the `jaq-*` library crates (targets `jaq_core`,
+    // `jaq_std`, ...) where `stderr`/`debug` emit; `jaq` prefix-matches those
+    // as well as this `jaqi` binary, whereas `jaqi` would match none of them
     env_logger::Builder::from_env(Env::default().filter_or("LOG", "jaq=debug"))
         .format(|buf, record| match record.level() {
             // format error messages (yielded by `stderr`) without newline

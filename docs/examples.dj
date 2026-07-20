@@ -1,54 +1,54 @@
 # Examples
 
-The following examples should give an impression of what jaq can currently do.
-You should obtain the same outputs by replacing jaq with jq.
+The following examples should give an impression of what jaqi can currently do.
+You should obtain the same outputs by replacing jaqi with jq.
 
 Access a field:
 
 ```
-$ echo '{"a": 1, "b": 2}' | jaq '.a'
+$ echo '{"a": 1, "b": 2}' | jaqi '.a'
 1
 ```
 
 Add values:
 
 ```
-$ echo '{"a": 1, "b": 2}' | jaq 'add'
+$ echo '{"a": 1, "b": 2}' | jaqi 'add'
 3
 ```
 
 Construct an array from an object in two ways and show that they are equal:
 
 ```
-$ echo '{"a": 1, "b": 2}' | jaq '[.a, .b] == [.[]]'
+$ echo '{"a": 1, "b": 2}' | jaqi '[.a, .b] == [.[]]'
 true
 ```
 
 Apply a filter to all elements of an array and filter the results:
 
 ```
-$ echo '[0, 1, 2, 3]' | jaq -c 'map(.*2) | [.[] | select(. < 5)]'
+$ echo '[0, 1, 2, 3]' | jaqi -c 'map(.*2) | [.[] | select(. < 5)]'
 [0,2,4]
 ```
 
 Read (slurp) input values into an array and get the average of its elements:
 
 ```
-$ echo '1 2 3 4' | jaq -s 'add / length'
+$ echo '1 2 3 4' | jaqi -s 'add / length'
 2.5
 ```
 
 Repeatedly apply a filter to itself and output the intermediate results:
 
 ```
-$ echo '0' | jaq -c '[recurse(.+1; . < 3)]'
+$ echo '0' | jaqi -c '[recurse(.+1; . < 3)]'
 [0,1,2]
 ```
 
 Lazily fold over inputs and output intermediate results:
 
 ```
-$ seq 5 | jaq -n 'foreach inputs as $x (0; . + $x)'
+$ seq 5 | jaqi -n 'foreach inputs as $x (0; . + $x)'
 1
 3
 6
@@ -165,7 +165,7 @@ the final answer to the puzzle is `Z`.
 
 I wanted to extract the
 [list of examples from the CBOR specification](https://www.rfc-editor.org/rfc/rfc8949.html#name-examples-of-encoded-cbor-da),
-in order to create a test suite for the CBOR encoder/decoder in jaq.
+in order to create a test suite for the CBOR encoder/decoder in jaqi.
 For this, I copied the relevant section from the HTML source code and
 pasted it into `examples/cbor-examples.xhtml`.
 The interesting parts look like this:
@@ -216,15 +216,15 @@ We can see the effects of that on a slightly simplified version of the HTML:
 To run this via the CLI:
 
 ```
-jaq '.. | select(.t? == "tr").c | [.[].c?[]]' examples/cbor-examples.xhtml
+jaqi '.. | select(.t? == "tr").c | [.[].c?[]]' examples/cbor-examples.xhtml
 ```
 
 We can create a series of tests as follows:
 
 ```
-jaq '.. | select(.t? == "tr").c | [.[].c?[]] | @json "jc(\(.[0]), \(.[1][2:]));"' \
+jaqi '.. | select(.t? == "tr").c | [.[].c?[]] | @json "jc(\(.[0]), \(.[1][2:]));"' \
   examples/cbor-examples.xhtml -r
 ```
 
-I used exactly this command to create a draft for jaq's CBOR parsing test suite.
+I used exactly this command to create a draft for jaqi's CBOR parsing test suite.
 

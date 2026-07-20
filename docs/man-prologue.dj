@@ -1,12 +1,12 @@
 # Name
 
-`jaq` --- Command-line JSON processor
+`jaqi` --- Command-line JSON processor
 
 
 
 # Synopsis
 
-`jaq`\ \[_OPTION_\]...\ \[_FILTER_\]\ \[_FILE_\]...
+`jaqi`\ \[_OPTION_\]...\ \[_FILTER_\]\ \[_FILE_\]...
 
 
 

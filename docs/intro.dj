@@ -1,9 +1,13 @@
-jaq is an interpreter for the [jq programming language](#corelang).
+jaqi is an interpreter for the [jq programming language](#corelang).
 It is designed to be usable as a drop-in replacement for the `jq` program,
 which is the reference interpreter for the jq language written in C.
 
-Written in Rust, jaq focuses on correctness, high performance, and simplicity.
-In addition, jaq adds some functionality not present in `jq`:
+jaqi is a fork of [jaq](https://github.com/01mf02/jaq) by Michael Färber,
+adding a number of correctness, safety, and performance fixes.
+Aside from those, it behaves like jaq.
+
+Written in Rust, jaqi focuses on correctness, high performance, and simplicity.
+In addition, jaqi adds some functionality not present in `jq`:
 
 - Support for multiple file [formats](#formats), including JSON, YAML, CBOR, TOML, XML
 - Support for invalid UTF-8 code units in [text strings](#text-strings)
@@ -14,17 +18,17 @@ In addition, jaq adds some functionality not present in `jq`:
 This manual aspires to:
 
 - Be comprehensible, concise, and complete.
-- Document all functionality in jaq, in particular
-  [jaq's command-line interface](#cli),
+- Document all functionality in jaqi, in particular
+  [jaqi's command-line interface](#cli),
   [jq's core language](#corelang), and
   [jq's standard library](#stdlib).
   That covers the same concepts as the [jq manual](https://jqlang.org/manual/).
-- Document all divergences between `jq` and jaq.
+- Document all divergences between `jq` and jaqi.
 
 In case that this manual falls short of these goals,
-please [open an issue](https://github.com/01mf02/jaq/issues) or
+please [open an issue](https://github.com/vlasky/jaqi/issues) or
 create a pull request.
-The same holds if you wish to propose new functionality for jaq.
+The same holds if you wish to propose new functionality for jaqi.
 This project lives from your contributions!
 
 The creation of this manual was funded through the
@@ -38,7 +42,7 @@ Additional funding is made available by the
 
 ::: Compatibility
 This manual uses "compatibility" blocks to
-point out occasions where jaq diverges from `jq`.
+point out occasions where jaqi diverges from `jq`.
 In this manual,
 "`jq`" refers to the C implementation, whereas
 "jq" refers to the jq language.

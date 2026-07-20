@@ -6,7 +6,7 @@ originally designed by Stephen Dolan.
 The jq language is Turing-complete and can therefore be used to write
 any program that can be written in any other programming language.
 jq programs can be executed with several interpreters, including
-`jq`, `gojq`, `fq`, and `jaq`.
+`jq`, `gojq`, `fq`, and `jaqi`.
 
 A program written in the jq language is called a jq program or _filter_.
 A filter is a function that
@@ -21,7 +21,7 @@ The following sections document all filters with built-in syntax in jq.
 Examples are written like `1 + 2, true or false --> 3 true`, which is equivalent to:
 
 ```
-$ jaq -n '1 + 2, true or false'
+$ jaqi -n '1 + 2, true or false'
 3
 true
 ```
@@ -41,14 +41,14 @@ and how to produce them.
 
 ::: Compatibility
 
-jaq extends the set of values that jq can process by
+jaqi extends the set of values that jq can process by
 [byte strings](#byte-strings) and
 [objects with non-string values](#objects).
 Where
  jq reads and writes values by default as [JSON](#json),
-jaq reads and writes values by default as [XJON](#xjon),
+jaqi reads and writes values by default as [XJON](#xjon),
 which is an extension of JSON.
-See those sections for how jaq serialises values.
+See those sections for how jaqi serialises values.
 
 :::
 
@@ -91,25 +91,25 @@ Numbers are filters that return their corresponding value, e.g.
 Negative numbers can be constructed by
 applying the [negation](#negation) operator to a number, e.g. `-1 --> -1`.
 
-Internally, jaq distinguishes
+Internally, jaqi distinguishes
 integers, floating-point numbers (floats), and decimal numbers:
 
 - A number without a dot (`.`) and without an exponent (`e`/`E`)
   is losslessly stored as integer.
-  jaq can store and calculate with integers of arbitrary size, e.g.
+  jaqi can store and calculate with integers of arbitrary size, e.g.
   `340282366920938463463374607431768211456` (`2^128`).
 - Any non-integer number is stored initially as decimal number,
   which is a string representation of the number.
-  That means that jaq losslessly preserves
+  That means that jaqi losslessly preserves
   any number corresponding to the regular expression above,
   such as `1.0e500`, if it occurs in a JSON file or jq filter.
 - When calculating with a decimal number,
-  jaq converts it transparently to a 64-bit
+  jaqi converts it transparently to a 64-bit
   [IEEE-754](https://en.wikipedia.org/wiki/IEEE_754) floating-point number.
-  For example, `1.0e500 + 1 --> Infinity`, because jaq converts
+  For example, `1.0e500 + 1 --> Infinity`, because jaqi converts
   `1.0e500` to the closest floating-point number, which is `Infinity`.
 
-The rules of jaq are:
+The rules of jaqi are:
 
 * The sum, difference, product, and remainder of two integers is integer, e.g.
   `1 + 2 --> 3`.
@@ -126,17 +126,17 @@ You can convert a floating-point number to an integer by
 ::: Compatibility
 `jq` uses floats for any number,
 meaning that it does not distinguish integers from floats.
-Many operations in jaq, such as array indexing,
+Many operations in jaqi, such as array indexing,
 check whether the passed numbers are indeed integer.
 The motivation behind this is to avoid
 rounding errors that may silently lead to wrong results.
 For example,
 `[0, 1, 2] | .[1] --> 1`, whereas
 `[0, 1, 2] | .[1.0000000000000001]` yields
-an error in jaq as opposed to `1` in `jq`.
+an error in jaqi as opposed to `1` in `jq`.
 
 Furthermore, `jq` prints NaN as `null`; e.g. `nan | tojson` yields `null`.
-In contrast, jaq prints NaN as `NaN`; e.g. `nan | tojson --> "NaN"`.
+In contrast, jaqi prints NaN as `NaN`; e.g. `nan | tojson --> "NaN"`.
 See the [XJON](#xjon) section for details.
 :::
 
@@ -191,13 +191,13 @@ For example,
 A byte string is an array of bytes that is *not* interpreted as (UTF-8) text.
 It can be produced from a text string via the filter [`tobytes`](#tobytes), e.g.
 `"Hello, world! 🙂" | tobytes --> b"Hello, world! \xf0\x9f\x99\x82"`.
-Currently, there is no native syntax in jaq to produce a byte string directly.
+Currently, there is no native syntax in jaqi to produce a byte string directly.
 
 Byte strings differ from text strings in a few regards; in particular,
 they can be [indexed](#indexing) and [sliced](#slicing) in constant time.
 That makes byte strings interesting e.g. for parsing binary formats.
 
-For compatibility reasons, jaq considers
+For compatibility reasons, jaqi considers
 both text strings and byte strings as strings.
 That means that `"Hello" | isstring and (tobytes | isstring) --> true`.
 Furthermore, a text string and a byte string that
@@ -280,8 +280,8 @@ in order to clarify that `,` does not start a new key-value pair.
 
 ::: Compatibility
 In jq, keys must be strings, whereas
-in jaq, keys can be arbitrary values.
-Because object keys can be arbitrary values in jaq, you can write e.g.:
+in jaqi, keys can be arbitrary values.
+Because object keys can be arbitrary values in jaqi, you can write e.g.:
 
 ```
 {(0): 1, "2": 3, ([4]): 5, ({}): 6} -->
@@ -359,11 +359,11 @@ Otherwise, it yields an error.
 ::: Compatibility
 `jq` accepts floating-point numbers as array indices; e.g.
 `[1, 2] | .[1.5]` yields `2`.
-In jaq, indexing an array with a floating-point number yields an error.
+In jaqi, indexing an array with a floating-point number yields an error.
 The same applies to the [slicing](#slicing) operator below.
 
 `jq` fails when the input is a string or an array and the index is
-an object that has neither `start` nor `end` keys, whereas jaq treats such
+an object that has neither `start` nor `end` keys, whereas jaqi treats such
 an object like `{start: null, end: null}`; that is,
 it creates a slice from the beginning to the end.
 :::
@@ -412,7 +412,7 @@ For example:
 - `{} | try .[1:-1] catch "fail" --> "fail"`
 
 ::: Compatibility
-jaq fails when trying to slice `null`, i.e.
+jaqi fails when trying to slice `null`, i.e.
 `null | try .[1:] catch "fail" --> "fail"`, whereas
 this yields `null` in `jq`.
 :::
@@ -768,7 +768,7 @@ In `jq`, a slightly different property holds, namely that
 That means that in `jq`,
 `(1, 2) + (1, 3)` yields `2 3 4 5`.
 
-As a result, in jaq,
+As a result, in jaqi,
 `(1,2) * (3,4) --> 3 4 6 8` and
 `{a: (1,2), b: (3,4)} | .a * .b --> 3 4 6 8`
 yield the same outputs, whereas `jq` yields `3 6 4 8` for the former example.
@@ -927,11 +927,11 @@ For example:
 
 ::: Compatibility
 In jq, division by 0 yields an error, whereas
-in jaq, `n / 0` yields
+in jaqi, `n / 0` yields
 `nan` if `n == 0`,
 ` infinite` if `n > 0`, and
 `-infinite` if `n < 0`.
-jaq's behaviour is closer to the IEEE standard for floating-point arithmetic (IEEE 754).
+jaqi's behaviour is closer to the IEEE standard for floating-point arithmetic (IEEE 754).
 :::
 
 {#mod}
@@ -1083,12 +1083,12 @@ For example:
 - `foreach empty as $x (0; . + $x) -->` (no output).
 
 ::: Compatibility
-The execution of `reduce` and `foreach` differs between `jq` and jaq
+The execution of `reduce` and `foreach` differs between `jq` and jaqi
 when `update` yields multiple outputs.
 However, the precise behaviour of `jq` in that case
 is quite difficult to describe.
 
-The interpretation of `reduce`/`foreach` in jaq has the following advantages over jq:
+The interpretation of `reduce`/`foreach` in jaqi has the following advantages over jq:
 
 * It deals very naturally with filters that yield multiple outputs.
   In contrast, jq discriminates outputs of `f`,
@@ -1101,16 +1101,16 @@ The interpretation of `reduce`/`foreach` in jaq has the following advantages ove
 ::: Advanced
 Consider the following example for an `update` yielding multiple values:
 `foreach (5, 10) as $x (1; .+$x, -.) -->
-6 16 -6 -1 9 1` in jaq, whereas it yields
+6 16 -6 -1 9 1` in jaqi, whereas it yields
 `6 -1 9 1` in jq.
-We can see that both jq and jaq yield the values
+We can see that both jq and jaqi yield the values
 resulting from the first iteration (where `$x` is 5), namely
 `1 | 5 as $x | (.+$x, -.) --> 6 -1`.
 However, jq performs the second iteration (where `$x` is 10)
 *only on the last value* returned from the first iteration, namely `-1`,
 yielding the values
 `-1 | 10 as $x | (.+$x, -.) --> 9 1`.
-jaq yields these values too, but it also performs the second iteration
+jaqi yields these values too, but it also performs the second iteration
 on all other values returned from the first iteration, namely `6`,
 yielding the values
 ` 6 | 10 as $x | (.+$x, -.) --> 16 -6`.

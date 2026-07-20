@@ -544,16 +544,16 @@ For example,
 `"a" | in({a: 1, b: 2}) --> true`.
 
 ::: Compatibility
-Whenever `has($k)` in `jq` returns `true`, jaq also returns `true`.
-However, when `has($k)` yields `true` in jaq,
+Whenever `has($k)` in `jq` returns `true`, jaqi also returns `true`.
+However, when `has($k)` yields `true` in jaqi,
 it may also yield `false` or an error in `jq`:
 
 - `[1, 2, 3] | has(-1, -2, -3) --> true true true` (`false false false` in `jq`)
 - `[1, 2, 3] | has({start: 1}) --> true` (error in `jq`)
 
 This difference arises because in `jq`,
-`has($k)` has a much weaker relationship with `.[$k]` than in jaq.
-The following properties hold in both `jq` and jaq:
+`has($k)` has a much weaker relationship with `.[$k]` than in jaqi.
+The following properties hold in both `jq` and jaqi:
 
 - `[1, 2, 3] | .[-1, -2, -3] --> 3 2 1`
 - `[1, 2, 3] | .[{start: 1}] --> [2, 3]`
@@ -611,7 +611,7 @@ For example:
 
 ::: Advanced
 
-In jaq, `walk(f)` is defined as `.. |= f`, whereas
+In jaqi, `walk(f)` is defined as `.. |= f`, whereas
 in `jq`, a definition similar to the following is used:
 
 ```
@@ -624,10 +624,10 @@ This is a more efficient version of:
 def walk(f): (.[]? |= walk(f)) | f;
 ```
 
-We can show that in jaq, `.. |= f` and `jq`'s definition of `walk(f)` are equivalent.
+We can show that in jaqi, `.. |= f` and `jq`'s definition of `walk(f)` are equivalent.
 For this, we will use equivalences about [pathless updates](#pathless).
 
-First, let us recall that `.. |= f` is equivalent to the following in jaq:
+First, let us recall that `.. |= f` is equivalent to the following in jaqi:
 
 ```
 def rec_up: (.[]? | rec_up), .; rec_up |= f
@@ -654,7 +654,7 @@ In the same sense,
 We can conclude that `.. |= f` is equivalent to `walk(f)`.
 
 Note, however, that this equivalence does *not* hold in `jq`,
-because `jq`'s updates work differently than jaq's.
+because `jq`'s updates work differently than jaqi's.
 The difference shows in particular when `f` returns multiple values.
 
 :::
@@ -695,7 +695,7 @@ If `f` returns values that do not point to the input, then `path(f)` yields an e
 ::: Advanced
 The filter `path(f)` is at the heart of how
 `jq` executes assignments such as `p |= u`,
-whereas jaq pursues a different, "pathless" approach.
+whereas jaqi pursues a different, "pathless" approach.
 See the section on [path-based updates](#path-based) for details on how
 `path(f)` is calculated.
 :::
@@ -759,9 +759,9 @@ For example:
 ::: Compatibility
 In `jq`,
 the `$paths` are interpreted relative to the _original_ input value, whereas
-in jaq, they are interpreted relative to the _current_ value. 
+in jaqi, they are interpreted relative to the _current_ value. 
 For example,
-`[1, 2, 3] | delpaths([[0], [0]]) --> [3]` in jaq, because
+`[1, 2, 3] | delpaths([[0], [0]]) --> [3]` in jaqi, because
 it first deletes the `0`-th element `1` (yielding `[2, 3]`),
 then it  deletes the `0`-th element `2` (yielding `[3]`).
 Here, `jq` yields `[2, 3]`, because the `0`-th element always
@@ -800,7 +800,7 @@ In `jq`, `pick(f)` also supports paths to arrays; for example:
 - `[1, 2, 3] | pick(.[1 ])` yields `[null, 2]`
 - `[1, 2, 3] | pick(.[1:])` yields `[2, 3]`
 
-While implementing this functionality in jaq, I found many corner cases
+While implementing this functionality in jaqi, I found many corner cases
 that would have made the proper documentation of this filter very complex.
 I also found a few surprising behaviours in `jq`, e.g. that
 `[1, 2, 3] | pick(.[-1])` yields an error.
@@ -915,7 +915,7 @@ For example:
 
 ### Math
 
-jaq implements many mathematical functions via [`libm`](https://docs.rs/libm).
+jaqi implements many mathematical functions via [`libm`](https://docs.rs/libm).
 If not specified otherwise, these filters take and return floating-point numbers.
 
 Zero-argument filters:
@@ -1211,7 +1211,7 @@ where `a1` is repeated `$n` times.
 ```
 
 ::: Advanced
-And now for a little discourse to see how jaq implements `combinations`.
+And now for a little discourse to see how jaqi implements `combinations`.
 
 Given the same input data as above, `combinations` yields the same as:
 
@@ -1251,7 +1251,7 @@ reduce ([1, 2], [3, 4]) as $a ([]; . + ($a[] | [.]))
 --> [1, 3] [1, 4] [2, 3] [2, 4]
 ```
 
-This crucially hinges on jaq's ability to use
+This crucially hinges on jaqi's ability to use
 multiple outputs of `g` in `reduce xs as $x (f; g)`.
 In `jq`, this does not work, because `jq` considers at most one output of `g`.
 
@@ -1273,13 +1273,13 @@ def combinations: .[][] |= [.] | reduce .[] as $a ([]; . + $a[]);
 --> [1, 3] [1, 4] [2, 3] [2, 4]
 ```
 
-And that, ladies and gentleman, is how `combinations` is implemented in jaq.
+And that, ladies and gentleman, is how `combinations` is implemented in jaqi.
 
 When we measure performance, via something like
 `time $JQ -n '[limit(6; repeat([range(10)]))] | combinations | empty'`,
 I get that
-jaq  takes 0.8 seconds and
-`jq` takes 3.6 seconds, meaning that jaq is more than four times faster here.
+jaqi  takes 0.8 seconds and
+`jq` takes 3.6 seconds, meaning that jaqi is more than four times faster here.
 :::
 
 
@@ -1297,7 +1297,7 @@ Its output depends on the type of its input:
 - Text strings are returned unchanged, i.e. `"Hi" | tostring --> "Hi"`.
 - Byte strings are interpreted as text string, i.e. `"Hi" | tobytes | tostring --> "Hi"`.
   This takes constant time.
-- Any other value is formatted compactly as if output by `jaq -c`. For example:
+- Any other value is formatted compactly as if output by `jaqi -c`. For example:
 
   - `null | tostring --> "null"`,
   - `[0, 1] | tostring --> "[0,1]"`,
@@ -1405,7 +1405,7 @@ For example, to memorise the hierarchy of values in jq:
 "null < boolean < number < string < array < object"`.
 
 ::: Compatibility
-Unlike jq, jaq does not map `null` values in the array to `""`,
+Unlike jq, jaqi does not map `null` values in the array to `""`,
 nor does it reject array or object values in the array.
 :::
 
@@ -1497,7 +1497,7 @@ For example:
 ```
 
 ::: Compatibility
-In jaq, `@base64d` only succeeds if its whole input is a valid Base64 string.
+In jaqi, `@base64d` only succeeds if its whole input is a valid Base64 string.
 In contrast, `jq` accepts also strings where only a part is valid Base64,
 thus potentially leading to hidden data corruption.
 See [#282](https://github.com/01mf02/jaq/issues/282) for a detailed discussion.
@@ -1516,8 +1516,8 @@ For example:
 - `"Hello, World!" | @uri | @urid --> "Hello, World!"`
 
 ::: Advanced
-The HTML version of this manual is created with jaq, and
-`@uri` is used to encode the examples to create links to the jaq playground.
+The HTML version of this manual is created with jaqi, and
+`@uri` is used to encode the examples to create links to the jaqi playground.
 :::
 
 {#atsh}
@@ -1535,15 +1535,15 @@ Examples:
 
 - `null, true, 1 | @sh --> "null" "true" "1"`
 - `"It's green!" | @sh --> "'It'\\''s green!'"`
-- `["jaq", "-n", "--arg", "slogan", "It's green!", "$slogan"] | @sh -->
-   "'jaq' '-n' '--arg' 'slogan' 'It'\\''s green!' '$slogan'"`
+- `["jaqi", "-n", "--arg", "slogan", "It's green!", "$slogan"] | @sh -->
+   "'jaqi' '-n' '--arg' 'slogan' 'It'\\''s green!' '$slogan'"`
 
 ::: Advanced
 When copy-pasting the output of the previous example to your terminal,
 be sure to replace `\\` by `\` before.
-That is, you should end up with `'jaq' '-n' '--arg' 'slogan' 'It'\''s green!' '$slogan'`,
+That is, you should end up with `'jaqi' '-n' '--arg' 'slogan' 'It'\''s green!' '$slogan'`,
 which you can execute in good conscience.
-Unescaping can be avoided by running `jaq` with [`--raw-output`](#--raw-output),
+Unescaping can be avoided by running `jaqi` with [`--raw-output`](#--raw-output),
 which does not escape `\` with `\\` in the first place.)
 :::
 
@@ -1578,9 +1578,9 @@ This is inspired by Erlang's `iolist_to_binary` function.
 
 ## Serialisation & Deserialisation
 
-The filters in this section read and write data in all formats supported by jaq.
+The filters in this section read and write data in all formats supported by jaqi.
 See the [formats](#formats) section for general information about
-how jaq interprets these formats.
+how jaqi interprets these formats.
 
 ::: Compatibility
 `jq` supports only JSON, so it only implements the
@@ -1614,7 +1614,7 @@ instead of returning it unchanged; i.e.
 
 ::: Compatibility
 In `jq`, `fromjson` yields an error when its input string contains multiple JSON values.
-Furthermore, in `jaq`,
+Furthermore, in `jaqi`,
 `tojson | fromjson` is equivalent to identity (`.`), whereas in `jq`,
 this is not the case, because
 `nan | tojson | fromjson` yields `null`, not `nan`.
@@ -1671,7 +1671,7 @@ temp_targets = { cpu = 79.5, case = 72.0 }\n
 
 The filter `totoml` fails if
 the input is not an object or
-the input contains any jaq value not supported by TOML.
+the input contains any jaqi value not supported by TOML.
 It converts invalid UTF-8 sequences like [CBOR](#cbor).
 
 ### `fromxml`, `toxml`
@@ -1984,7 +1984,7 @@ The supported flags are:
 
 ::: Compatibility
 
-jaq uses the [`regex-lite`](https://docs.rs/regex-lite) crate to
+jaqi uses the [`regex-lite`](https://docs.rs/regex-lite) crate to
 compile and run regular expressions (regexes).
 See the crate documentation for a description of the supported regex syntax.
 
@@ -1996,9 +1996,9 @@ The filter `test` yields
 `true` if some part of the input matches the regular expression, else `false`.
 For example:
 
-- `"jaq v3.0" | test("v[0-9]+\\.[0-9]+") --> true`
-- `"jaq V3.0" | test("v[0-9]+\\.[0-9]+") --> false`
-- `"jaq V3.0" | test("v[0-9]+\\.[0-9]+"; "i") --> true`
+- `"jaqi v3.0" | test("v[0-9]+\\.[0-9]+") --> true`
+- `"jaqi V3.0" | test("v[0-9]+\\.[0-9]+") --> false`
+- `"jaqi V3.0" | test("v[0-9]+\\.[0-9]+"; "i") --> true`
 
 ### `scan`
 
@@ -2156,20 +2156,20 @@ The filter `inputs` yields all the inputs in the current input file.
 For example:
 
 ```
-$ echo 1 2 3 | jaq -nc '[inputs]'
+$ echo 1 2 3 | jaqi -nc '[inputs]'
 [1,2,3]
 ```
 
 This can be useful to fold over large (potentially infinite) amounts of values;
 for example, to create a cumulative sum over all input integers, you can use
-`jaq -n 'foreach inputs as $x (0; .+$x)'`.
+`jaqi -n 'foreach inputs as $x (0; .+$x)'`.
 
 The filter `input` yields the next input in the current input file.
 
 ::: Compatibility
 When there is no more input value left,
-in `jq`, `input` yields an error, whereas in jaq, it yields no output value.
-That is, in jaq, `input` is equivalent to `first(inputs)`.
+in `jq`, `input` yields an error, whereas in jaqi, it yields no output value.
+That is, in jaqi, `input` is equivalent to `first(inputs)`.
 :::
 
 ::: Advanced
@@ -2187,7 +2187,7 @@ to the standard error stream (stderr), then yields its input.
 For example:
 
 ```
-$ jaq -n '0 | debug(1, 2)'
+$ jaqi -n '0 | debug(1, 2)'
 ["DEBUG:", 1]
 ["DEBUG:", 2]
 0
@@ -2202,21 +2202,21 @@ in [raw](#--raw-output) and [compact](#--compact-output) mode [without newline](
 It then yields its input.
 
 ```
-$ jaq -n '"Hi" | stderr'
+$ jaqi -n '"Hi" | stderr'
 Hi"Hi"
 ```
 
 {#halt}
 ### `halt`, `halt($exit_code)`
 
-The filter `halt($exit_code)` terminates jaq with the given exit code.
+The filter `halt($exit_code)` terminates jaqi with the given exit code.
 
-The filter `halt` terminates jaq with exit code 0.
+The filter `halt` terminates jaqi with exit code 0.
 
 ```
-$ jaq -n '1, halt    , 2'
+$ jaqi -n '1, halt    , 2'
 1
-$ jaq -n '1, halt(42), 2'; echo $?
+$ jaqi -n '1, halt(42), 2'; echo $?
 1
 42
 ```
@@ -2236,14 +2236,14 @@ anything outside of that range _may_ be silently truncated by the operating syst
 ### `halt_error`, `halt_error($exit_code)`
 
 The filter `halt_error($exit_code)` prints its input via [`stderr`](#stderr).
-It then quits the jaq process with the given exit code.
+It then quits the jaqi process with the given exit code.
 
 The filter `halt_error` is equivalent to `halt_error(5)`.
 
 ```
-$ jaq -n '"Hi!" | halt_error(42)'; echo $?
+$ jaqi -n '"Hi!" | halt_error(42)'; echo $?
 Hi!42
-$ jaq -n '"Hi!" | halt_error    '; echo $?
+$ jaqi -n '"Hi!" | halt_error    '; echo $?
 Hi!5
 ```
 
@@ -2256,7 +2256,7 @@ Hi!5
 This filter yields the [Unix epoch](#date-time) as floating-point number.
 
 ```
-$ date +%s | jaq 'now - . as $dt | 0 <= $dt and $dt <= 2'
+$ date +%s | jaqi 'now - . as $dt | 0 <= $dt and $dt <= 2'
 true
 ```
 
@@ -2268,7 +2268,7 @@ the key is the name of the variable and the value is its value.
 For example, `{"EDITOR": "vim", "SHELL": "/usr/bin/bash"}`.
 
 ```
-$ MYFLAG=42 jaq -n '$ENV.MYFLAG'
+$ MYFLAG=42 jaqi -n '$ENV.MYFLAG'
 "42"
 ```
 
@@ -2281,18 +2281,18 @@ the name of the file currently read, or
 `"<stdin>"` if standard input is currently read.
 
 ```
-$ jaq --slurp 'input_filename' "examples/benches.json"
+$ jaqi --slurp 'input_filename' "examples/benches.json"
 "examples/benches.json"
-$ echo 0 | jaq 'input_filename'
+$ echo 0 | jaqi 'input_filename'
 "<stdin>"
 ```
 
 ::: Compatibility
 In jq, this filter returns the name of the file most recently read from.
-This can lead to subtle differences compared to jaq. For example:
+This can lead to subtle differences compared to jaqi. For example:
 
 ```
-$ echo 0 | jaq --null-input '(., inputs) | input_filename'
+$ echo 0 | jaqi --null-input '(., inputs) | input_filename'
 "<stdin>"
 "<stdin>"
 ```
@@ -2303,7 +2303,7 @@ When executing the filter `.`, jq did not read any input, so
 However, when executing `inputs`, jq starts reading from standard input, so
 `input_filename` returns `"<stdin>"`.
 
-In contrast, jaq considers a file as being read even when it has only been opened.
+In contrast, jaqi considers a file as being read even when it has only been opened.
 :::
 
 ### `repl`
@@ -2313,11 +2313,11 @@ You can nest calls to `repl`; that is, you can run `repl` from inside a `repl`.
 Use CTRL-D to exit a REPL.
 
 This filter yields no output.
-It writes its history to a file `jaq-history` in the user's cache directory.
+It writes its history to a file `jaqi-history` in the user's cache directory.
 
 ::: Compatibility
 This filter has been inspired by `fq`'s `repl` filter.
-However, unlike `fq`, jaq does not require to be started with the `--repl` flag,
+However, unlike `fq`, jaqi does not require to be started with the `--repl` flag,
 and it allows calls to `repl` anywhere in a filter, not only last in the pipeline.
 
 `jq` does not have this filter.
@@ -2327,7 +2327,7 @@ and it allows calls to `repl` anywhere in a filter, not only last in the pipelin
 {#unsupported-stdlib}
 ## Unsupported
 
-This section lists filters present in `jq`, but not in jaq.
+This section lists filters present in `jq`, but not in jaqi.
 
 - [`$__loc__`](https://jqlang.org/manual/#$__loc__)
 - [`modulemeta`](#module-metadata)
@@ -2337,7 +2337,7 @@ This section lists filters present in `jq`, but not in jaq.
 - [`builtins`](https://jqlang.org/manual/#builtins)
 - [`input_line_number`](https://jqlang.org/manual/#input_line_number)
 
-jaq supports none of jq's
+jaqi supports none of jq's
 [SQL-style operators](https://jqlang.org/manual/#sql-style-operators),
 mostly for aesthetic reasons (uppercase-names) and because jq is not SQL:
 
@@ -2345,7 +2345,7 @@ mostly for aesthetic reasons (uppercase-names) and because jq is not SQL:
 - `JOIN`
 - `IN`
 
-jaq does not support `jq`'s [`--stream`](https://jqlang.org/manual/#streaming) option;
+jaqi does not support `jq`'s [`--stream`](https://jqlang.org/manual/#streaming) option;
 therefore, it also does not implement the related filters:
 
 - `truncate_stream`

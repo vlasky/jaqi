@@ -17,12 +17,12 @@ takes its comments, and adds a not very flattering comment to it.
 (This does not reflect my opinion about Stephen Dolan ---
 I think that he did a great job creating jq.)
 
-jaq and `jq` pursue different approaches to execute assignments:
+jaqi and `jq` pursue different approaches to execute assignments:
 
 - *Path-based*: In `jq`, an assignment `p |= f`
   constructs paths to all values that match `p` and
   applies the filter `f` to these values.
-- *Pathless*: In jaq, an assignment `p |= f` is transformed to
+- *Pathless*: In jaqi, an assignment `p |= f` is transformed to
   a different filter that does not construct any paths.
 
 For example, consider the update
@@ -30,14 +30,14 @@ For example, consider the update
 When `jq` executes this, it calculates
 `[1, 2, 3] | path(.[]) --> [0] [1] [2]` and applies
 `.+1` on each value at these paths.
-On the other hand, jaq transforms the update to
+On the other hand, jaqi transforms the update to
 `[1, 2, 3] | [.[] | .+1] --> [2, 3, 4]` ---
 the assignment does not involve any path construction.
 
 Fortunately, like in the example above, in most cases,
 the result of the both approaches is the same.
 The following sections explain the two approaches in more detail,
-and how to write updates that behave the same in both `jq` and jaq.
+and how to write updates that behave the same in both `jq` and jaqi.
 
 
 ### Path-based
@@ -90,9 +90,9 @@ Examples:
 - `[1, 2, 3]    | (0, 2) as $x | path(.[$x])  --> [0] [2]`
 :::
 
-The filters [`reduce` / `foreach`](#reduce-foreach) are both defined in jaq
+The filters [`reduce` / `foreach`](#reduce-foreach) are both defined in jaqi
 in terms of simpler filters `f` that `path(f)` can evaluate.
-Therefore, in jaq, you can use `reduce` / `foreach` inside `path(f)`,
+Therefore, in jaqi, you can use `reduce` / `foreach` inside `path(f)`,
 as well as on the left-hand side of updates.
 For example:
 
@@ -118,25 +118,25 @@ For example:
 `jq` does not support `reduce` / `foreach` in `path`.
 
 On the other hand, `jq` is more permissive with paths of intermediate values.
-For example, `try path([] | empty) catch "fail" --> "fail"`, because jaq reduces
+For example, `try path([] | empty) catch "fail" --> "fail"`, because jaqi reduces
 `path([] | empty)` to
 `path([]) as $p | ...`, which fails because `path([])` is not defined.
 Conversely, `jq` yields no output for this filter.
-Interestingly, `path([] | .[])` yields an error in both jaq and `jq`,
+Interestingly, `path([] | .[])` yields an error in both jaqi and `jq`,
 so I do not understand why the example with `empty` does not yield an error, too.
 
-In jaq,
+In jaqi,
 `[] | path(.[0: ]) --> [{"start": 0}]` and
 `[] | path(.[ :0]) --> [{"end"  : 0}]`, whereas `jq` yields
 `[{start: 0   , end: null}]` and
 `[{start: null, end: 0   }]`, respectively.
 That means that `jq` always adds missing `start`/`end` indices as `null`,
-whereas jaq omits them.
+whereas jaqi omits them.
 :::
 
 ### Pathless
 
-The pathless update model that is used by jaq
+The pathless update model that is used by jaqi
 reduces updates `p |= u` to simpler expressions, depending on `p`.
 It yields the same results as path-based updates in most common cases,
 while having the following advantages:
@@ -145,10 +145,10 @@ while having the following advantages:
 - It considers multiple outputs by `u` where possible, whereas
   path-based updates consider at most one output.
   For example,
-  `0 | (., .) |= (., .+1) --> 0 1 1 2` in jaq,
+  `0 | (., .) |= (., .+1) --> 0 1 1 2` in jaqi,
   whereas it yields only `0` in jq.
   However,
-  `{a: 1} | .a |= (2, 3) --> {"a": 2}` in both jaq and jq,
+  `{a: 1} | .a |= (2, 3) --> {"a": 2}` in both jaqi and jq,
   because an object can only associate a single value with any given key,
   so we cannot use multiple outputs in a meaningful way here.
 - It avoids iterator invalidation problems that path-based updates are prone to.
@@ -161,7 +161,7 @@ left-hand side of updates that path-based updates support, such as:
 - [`limit($n; f)`](#limit)
 - [`skip($n; f)`](#skip)
 
-For example, the following filters all yield an error in jaq:
+For example, the following filters all yield an error in jaqi:
 
 - `[1, 2, 3] | try      .[]  -= 1` yields `[0, 1, 2]` in jq.
 - `[1, 2, 3] | first(   .[]) -= 1` yields `[0, 2, 3]` in jq.
@@ -169,19 +169,19 @@ For example, the following filters all yield an error in jaq:
 - `[1, 2, 3] | skip (1; .[]) -= 1` yields `[1, 1, 2]` in jq.
 - `[1, 2, 3] | last (   .[]) -= 1` yields an error in jq.
 
-In such cases, you can fall back to path-based updates in jaq by writing
+In such cases, you can fall back to path-based updates in jaqi by writing
 `getpath(path(p)) |= u` instead of `p |= u`.
-For example, the following filters yield the same outputs in jaq and `jq`:
+For example, the following filters yield the same outputs in jaqi and `jq`:
 
 - `[1, 2, 3] | getpath(path(try      .[] )) -= 1 --> [0, 1, 2]`
 - `[1, 2, 3] | getpath(path(first(   .[]))) -= 1 --> [0, 2, 3]`
 - `[1, 2, 3] | getpath(path(limit(2; .[]))) -= 1 --> [0, 1, 3]`
 - `[1, 2, 3] | getpath(path(skip (1; .[]))) -= 1 --> [1, 1, 2]`
 - `[1, 2, 3] | getpath(path(last (   .[]))) -= 1 --> [1, 2, 2]`
-  (this example yields an error in `jq`, whereas it works in jaq)
+  (this example yields an error in `jq`, whereas it works in jaqi)
 
 ::: Advanced
-The following table shows how jaq executes an update `p |= u`.
+The following table shows how jaqi executes an update `p |= u`.
 In this table, the case for
 `f as $x | g` assumes that
 `f` yields single outputs `f1`, ..., `fn`.
@@ -276,26 +276,26 @@ it returns its input unchanged instead of throwing an error.
 :::
 
 ::: Compatibility
-In `jq`, `. |= empty` yields `null` for any input, whereas jaq yields no output.
+In `jq`, `. |= empty` yields `null` for any input, whereas jaqi yields no output.
 Similarily,
-in `jq`, `. |= (., .)` yields its input once, whereas jaq yields its input twice.
+in `jq`, `. |= (., .)` yields its input once, whereas jaqi yields its input twice.
 
 In `jq`, `[0, 1] | .[3] = 3` yields `[0, 1, null, 3]`; that is,
 `jq` fills up the list with `null`s if we update beyond its size.
-In contrast, jaq fails with an out-of-bounds error in such a case.
+In contrast, jaqi fails with an out-of-bounds error in such a case.
 
-`jq` does not support updating string slices, whereas jaq does.
+`jq` does not support updating string slices, whereas jaqi does.
 
 In `jq`,
 `null | .a   = 1` yields `{"a": 1}` and
 `null | .[0] = 1` yields `[1]`, meaning that
 `jq` treats `null` as empty array or object when
 updating it with a string or integer index.
-Because jaq supports non-string object keys, this is ambiguous, because
+Because jaqi supports non-string object keys, this is ambiguous, because
 it is not clear whether
 `null | .[0] = 1` should yield
 `{0: 1}` or `[1]`.
-For that reason, jaq yields an error on updates of null with any kind of index.
+For that reason, jaqi yields an error on updates of null with any kind of index.
 :::
 
 ## Patterns
@@ -379,7 +379,7 @@ foreach .[] as {("a", "b"): $x} ([]; . + [$x]) -->
 ```
 
 ::: Compatibility
-jaq does not support `jq`'s destructuring alternative operator
+jaqi does not support `jq`'s destructuring alternative operator
 [`?//`](https://jqlang.org/manual/#destructuring-alternative-operator).
 :::
 
@@ -464,7 +464,7 @@ only once.
 For example, `module "My module"; 1 --> 1`.
 
 ::: Compatibility
-jaq ignores this instruction, whereas
+jaqi ignores this instruction, whereas
 `jq` uses it to provides the output of `meta` via the `modulemeta` filter.
 :::
 
@@ -476,7 +476,7 @@ The instructions
 make all filters defined in the module `mod.jq` accessible in the current module.
 
 For example, if `foo.jq` in the current working directory contains `def bar: 1;`, then
-`jaq -L . -n 'include "foo"; bar'` yields `1`.
+`jaqi -L . -n 'include "foo"; bar'` yields `1`.
 
 ### Module import
 
@@ -489,7 +489,7 @@ with the prefix `name::`.
 For example:
 
 ```
-$ echo 'def bar: 1;' > foo.jq && jaq -L . -n 'import "foo" as myfoo; myfoo::bar' && rm foo.jq
+$ echo 'def bar: 1;' > foo.jq && jaqi -L . -n 'import "foo" as myfoo; myfoo::bar' && rm foo.jq
 1
 ```
 
@@ -505,7 +505,7 @@ make it accessible in the current module.
 For example:
 
 ```
-$ echo 1 2 3 > foo.json && jaq -L . -nc 'import "foo.json" as $myfoo; $myfoo' && rm foo.json
+$ echo 1 2 3 > foo.json && jaqi -L . -nc 'import "foo.json" as $myfoo; $myfoo' && rm foo.json
 [1,2,3]
 ```
 
@@ -538,17 +538,17 @@ Every global and local search path is substituted as follows:
   `~` is substituted with the user's home directory,
   given by the environment variable `HOME` on Linux and `USERPROFILE` on Windows.
 - If it starts with `$ORIGIN`, then
-  `$ORIGIN` is substituted by the directory in which the `jaq` executable resides.
+  `$ORIGIN` is substituted by the directory in which the `jaqi` executable resides.
 
 For example,
-`jaq -L ~/foo -L bar 'include "decode" {search: ["baz", "$ORIGIN/quux"]}; 1'`
+`jaqi -L ~/foo -L bar 'include "decode" {search: ["baz", "$ORIGIN/quux"]}; 1'`
 searches for the file `decode.jq` at the following paths in the given order:
 
 1. `~/foo/decode.jq` (where `~` is substituted by the user's home directory)
 2. `./bar/decode.jq`
 3. `./baz/decode.jq`
 4. `$ORIGIN/quux/decode.jq`
-   (where `$ORIGIN` is substituted by the parent directory of the `jaq` executable)
+   (where `$ORIGIN` is substituted by the parent directory of the `jaqi` executable)
 
 The first path that corresponds to an existing file is taken.
 
@@ -563,12 +563,12 @@ This searches for `binary.json` at the following paths:
 ::: Compatibility
 If a file to load has been given without extension,
 such as `decode` and `binary` above, then
-jaq adds an extension (`.jq` for modules or `.json` for data).
+jaqi adds an extension (`.jq` for modules or `.json` for data).
 `jq` adds an extension _unconditionally_; that is,
 even if an extension has been given as part of the file name,
 `jq` adds an extension.
 
-jaq's behaviour is motivated by allowing instructions like
+jaqi's behaviour is motivated by allowing instructions like
 `import "binary.cbor" as $binary` in the future.
 Here, unconditionally adding the `.json` extension would be counterproductive.
 :::
